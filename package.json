@@ -1,0 +1,29 @@
+{
+    "name": "cultureland-api",
+    "version": "1.0.0",
+    "description": "An API wrapper for Cultureland.",
+    "main": "cultureland.js",
+    "scripts": {
+        "test": "node index.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/DollarNoob/Cultureland-API.git"
+    },
+    "keywords": [
+        "cultureland",
+        "transkey",
+        "mtranskey",
+        "raonsecure",
+        "charge"
+    ],
+    "author": "DollarNoob",
+    "license": "GPL-3.0",
+    "bugs": {
+        "url": "https://github.com/DollarNoob/Cultureland-API/issues"
+    },
+    "homepage": "https://github.com/DollarNoob/Cultureland-API#readme",
+    "dependencies": {
+        "node-fetch": "^2.6.7"
+    }
+}
