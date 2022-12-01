@@ -18,10 +18,10 @@ process.on("unhandledRejection", function(err, origin) {
 app.use(express.json());
 app.use(morgan("combined"));
 
-app.get("/balance", async function(req, res) {
+app.post("/balance", async function(req, res) {
     const now = Date.now();
 
-    const {keepLoginInfo, pin, token} = req.body;
+    const {keepLoginInfo, token} = req.body;
 
     if (!keepLoginInfo) {
         console.log(`${token.split("-")[0]} | ERR_LOGIN_REQUIRED - ${Date.now() - now}ms`);
