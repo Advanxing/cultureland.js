@@ -19,7 +19,7 @@ class cultureland {
     }
 
     async balance() {
-        if (!this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
+        if (!await this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
 
         const balance = await fetch("https://m.cultureland.co.kr/tgl/getBalance.json", {
             headers: {
@@ -38,16 +38,14 @@ class cultureland {
     }
 
     async charge(pin, check = true) {
-        if (!this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
+        //if (!await this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
 
         if (check) {
-            const voucherData = await this.check(pin);
-            console.log(voucherData);
+            //const voucherData = await this.check(pin);
+            //console.log(voucherData);
 
             // TODO: validate voucher codes
         }
-
-        pin = pin.split("-");
 
         const pageRequest = await fetch(pin[3].length === 4 ? "https://m.cultureland.co.kr/csh/cshGiftCard.do" : "https://m.cultureland.co.kr/csh/cshGiftCardOnline.do", {
             headers: {
@@ -92,10 +90,10 @@ class cultureland {
                 cookie: this.cookies.join("; ")
             }
         }).then(res => res.text());
-        
+
         const chargeData = chargeResult.split("<tbody>")[1].split("<td>");
         const reason = chargeData[3].split("</td>")[0];
-        const amount = chargeData[4].split("</td>")[0].trim().replace("원", "");
+        const amount = Number(chargeData[4].split("</td>")[0].trim().replace("원", "").replace(/,/g, ""));
 
         return {
             amount,
@@ -104,7 +102,7 @@ class cultureland {
     }
 
     async gift(amount, quantity, phone) {
-        if (!this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
+        if (!await this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
 
         await fetch("https://m.cultureland.co.kr/gft/gftPhoneApp.do", {
             headers: {
@@ -190,6 +188,7 @@ class cultureland {
             body: "keepLoginInfo=" + keepLoginInfo
         });
 
+        if (loginRequest.headers.raw()["location"] === "https://m.cultureland.co.kr/cmp/authConfirm.do") throw new Error("ERR_LOGIN_RESTRICTED");
         this.cookies = loginRequest.headers.raw()["set-cookie"].map(c => c.split(";")[0]);
 
         if (loginRequest.status !== 302) throw new Error("ERR_LOGIN_FAILED");
