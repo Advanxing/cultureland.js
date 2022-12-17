@@ -92,7 +92,7 @@ class cultureland {
         }).then(res => res.text());
 
         const chargeData = chargeResult.split("<tbody>")[1].split("<td>");
-        const reason = chargeData[3].split("</td>")[0];
+        const reason = chargeData[3].split("</td>")[0].replace(/<\/?[\d\w\s='#]+>/g, "");
         const amount = Number(chargeData[4].split("</td>")[0].trim().replace("원", "").replace(/,/g, ""));
 
         return {
