@@ -219,7 +219,7 @@ app.post("/charge", async function(req, res) {
             });
         }
     }
-    else if (!["20", "21", "22", "23", "24", "30", "31", "32", "33", "34", "40", "42", "43", "44", "51", "52", "53", "54"].includes(splitPin[0].substring(0, 2))) {
+    else if (!["20", "21", "22", "23", "24", "25", "30", "31", "32", "33", "34", "35", "40", "42", "43", "44", "45", "51", "52", "53", "54", "55"].includes(splitPin[0].substring(0, 2))) {
         console.log(`${token.split("-")[0]} | ERR_INVALID_PIN_PREFIX 1 - ${Date.now() - now}ms`);
         return res.status(400).json({
             amount: 0,
