@@ -1,4 +1,6 @@
 const fetch = require("node-fetch");
+const crypto = require("crypto");
+const Jimp = require("jimp");
 const Crypto = require("./crypto");
 const KeyPad = require("./keypad");
 
@@ -68,19 +70,11 @@ class mTransKey {
             "body": `op=getKeyIndex&name=${name}&keyType=single&keyboardType=${key_type}Mobile&fieldType=${fieldType}&inputName=${inputName}&parentKeyboard=false&transkeyUuid=${this.transkeyUuid}&exE2E=false&TK_requestToken=${this.token}&allocationIndex=${this.allocationIndex}&keyIndex=&initTime=${this.initTime}&talkBack=true`
         }).then(res => res.text());
 
-        const skipData = await fetch("https://m.cultureland.co.kr/transkeyServlet", {
-            "headers": {
-                "content-type": "application/x-www-form-urlencoded",
-                "cookie": cookies.join("; ")
-            },
-            "method": "POST",
-            "body": `op=getDummy&name=${name}&keyType=single&keyboardType=${key_type}Mobile&fieldType=${fieldType}&inputName=${inputName}&parentKeyboard=false&transkeyUuid=${this.transkeyUuid}&exE2E=false&TK_requestToken=${this.token}&allocationIndex=${this.allocationIndex}&keyIndex=${keyIndex}&initTime=${this.initTime}&talkBack=true`
-        }).then(res => res.text());
+        const keyImage = await fetch(`https://m.cultureland.co.kr/transkeyServlet?op=getKey&name=${name}&keyType=single&keyboardType=${key_type}Mobile&fieldType=${fieldType}&inputName=${inputName}&parentKeyboard=false&transkeyUuid=${this.transkeyUuid}&exE2E=false&TK_requestToken=${this.token}&allocationIndex=${this.allocationIndex}&keyIndex=${keyIndex}&initTime=${this.initTime}`)
+            .then(res => res.buffer());
 
-        const skip = skipData.split(",").map(Number);
-
-        if (key_type === "qwerty") return new KeyPad(skip, this.qwerty, this.crypto.sessionKey, keyIndex)
-        else return new KeyPad(skip, this.number, this.crypto.sessionKey, keyIndex)
+        if (key_type === "qwerty") return new KeyPad(this.qwerty, keyImage, this.crypto.sessionKey, keyIndex);
+        else return new KeyPad(this.number, keyImage, this.crypto.sessionKey, keyIndex);
     }
 }
 

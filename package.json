@@ -2,10 +2,9 @@
     "name": "cultureland-api",
     "version": "1.0.0",
     "description": "An API wrapper for Cultureland.",
-    "main": "app.js",
+    "main": "cultureland.js",
     "scripts": {
-        "run": "node app.js",
-        "test": "node test.js"
+        "test": "node index.js"
     },
     "repository": {
         "type": "git",
@@ -25,7 +24,9 @@
     },
     "homepage": "https://github.com/DollarNoob/Cultureland-API#readme",
     "dependencies": {
+        "cycletls": "^1.0.21",
         "express": "^4.18.2",
+        "jimp": "^0.16.2",
         "morgan": "^1.10.0",
         "node-fetch": "^2.6.7"
     }

@@ -1,9 +1,11 @@
+﻿const initCycleTLS = require("cycletls");
 const fetch = require("node-fetch");
 const mTransKey = require("./transkey");
 
 class cultureland {
     constructor() {
         this.cookies = [];
+        this.cycleTLS = null;
     }
 
     async check(pin, isMobile = true) {
@@ -64,20 +66,23 @@ class cultureland {
         await transKey.getKeyData(this.cookies);
 
         const keypad = await transKey.createKeypad(this.cookies, "number", "txtScr14", "scr14", "password");
-        const encryptedPin = keypad.encryptPassword(pin[3], transKey.initTime, transKey.genKey);
+        const skipData = await keypad.getSkipData();
+        const encryptedPin = keypad.encryptPassword(pin[3], skipData);
 
         const requestBody = `versionCode=&scr11=${pin[0]}&scr12=${pin[1]}&scr13=${pin[2]}&scr14=${"*".repeat(pin[3].length)}&seedKey=${transKey.crypto.encSessionKey}&initTime=${transKey.initTime}&keyIndex_txtScr14=${keypad.keyIndex}&keyboardType_txtScr14=numberMobile&fieldType_txtScr14=password&transkeyUuid=${transKey.crypto.transkeyUuid}&transkey_txtScr14=${encodeURIComponent(encryptedPin)}&transkey_HM_txtScr14=${transKey.crypto.hmacDigest(encryptedPin)}`;
-        const chargeRequest = await fetch(pin[3].length === 4 ? "https://m.cultureland.co.kr/csh/cshGiftCardProcess.do" : "https://m.cultureland.co.kr/csh/cshGiftCardOnlineProcess.do", {
+        const chargeRequest = await this.cycleTLS(pin[3].length === 4 ? "https://m.cultureland.co.kr/csh/cshGiftCardProcess.do" : "https://m.cultureland.co.kr/csh/cshGiftCardOnlineProcess.do", {
             headers: {
                 "content-type": "application/x-www-form-urlencoded",
                 cookie: this.cookies.join("; ")
             },
             method: "POST",
-            redirect: "manual",
-            body: requestBody
-        });
+            body: requestBody,
+            ja3: "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-18-51-45-43-27-17513-21,29-23-24,0",
+            userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
+            disableRedirect: true
+        }, "POST");
 
-        for (const cookie of chargeRequest.headers.raw()["set-cookie"]) {
+        for (const cookie of chargeRequest.headers["Set-Cookie"]) {
             const cookieIndex = this.cookies.findIndex(c => c.startsWith(cookie.split("=")[0]));
             if (cookieIndex) this.cookies[cookieIndex] = cookie.split(";")[0];
             else this.cookies.push(cookie.split(";")[0]);
@@ -85,7 +90,7 @@ class cultureland {
 
         if (chargeRequest.status !== 302) throw new Error("ERR_CHARGE_FAILED");
 
-        const chargeResult = await fetch("https://m.cultureland.co.kr/csh/cshGiftCardCfrm.do", {
+        const chargeResult = await fetch("https://m.cultureland.co.kr/" + chargeRequest.headers.Location, {
             headers: {
                 cookie: this.cookies.join("; ")
             }
@@ -192,6 +197,8 @@ class cultureland {
         this.cookies = loginRequest.headers.raw()["set-cookie"].map(c => c.split(";")[0]);
 
         if (loginRequest.status !== 302) throw new Error("ERR_LOGIN_FAILED");
+
+        this.cycleTLS = await initCycleTLS();
 
         return {
             sessionId: this.cookies.find(c => c.startsWith("JSESSIONID=")).split("=")[1]
