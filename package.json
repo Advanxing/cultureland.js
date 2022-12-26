@@ -2,8 +2,9 @@
     "name": "cultureland-api",
     "version": "1.0.0",
     "description": "An API wrapper for Cultureland.",
-    "main": "cultureland.js",
+    "main": "app.js",
     "scripts": {
+        "run": "node app.js",
         "test": "node index.js"
     },
     "repository": {
