@@ -149,7 +149,7 @@ class cultureland {
             method: "POST"
         }).then(res => res.text());
 
-        return Boolean(isLogin);
+        return isLogin === "true";
     }
 
     async getUserInfo() {
