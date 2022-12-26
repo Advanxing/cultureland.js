@@ -6,11 +6,10 @@ const pKey = ["00ce263e3fd958264da51416be398e42d893df856851e56358377fa4296accb16
 class crypto {
     constructor() {
         this.sessionKey = [, , , , , , , , , , , , , , , ];
-
-		this.transkeyUuid = genKey.tk_sh1prng();
-		this.genSessionKey = genKey.GenerateKey(128);
-		for (var i = 0; i < 16; i++) this.sessionKey[i] = Number("0x0" + this.genSessionKey.charAt(i));
-		this.encSessionKey = this.phpbb_encrypt2048(this.genSessionKey, 256, pKey[1], pKey[0]);
+        this.transkeyUuid = genKey.tk_sh1prng();
+        this.genSessionKey = genKey.GenerateKey(128);
+        for (var i = 0; i < 16; i++) this.sessionKey[i] = Number("0x0" + this.genSessionKey.charAt(i));
+        this.encSessionKey = this.phpbb_encrypt2048(this.genSessionKey, 256, pKey[1], pKey[0]);
         this.allocationIndex = genKey.tk_getrnd_int();
     }
 
