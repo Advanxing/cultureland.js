@@ -413,42 +413,42 @@ class Seed {
     }
 
     static SeedEnc(geo, sessionKey) {
-		var iv = [0x4d, 0x6f, 0x62, 0x69, 0x6c, 0x65, 0x54, 0x72, 0x61, 0x6e, 0x73, 0x4b, 0x65, 0x79, 0x31, 0x30];
-		var tsize = 64;
-		var inData = new Array(tsize);
-		var outData = new Array(tsize);
-		var roundKey = new Array(32);
-		var i = 0;
+        var iv = [0x4d, 0x6f, 0x62, 0x69, 0x6c, 0x65, 0x54, 0x72, 0x61, 0x6e, 0x73, 0x4b, 0x65, 0x79, 0x31, 0x30];
+        var tsize = 64;
+        var inData = new Array(tsize);
+        var outData = new Array(tsize);
+        var roundKey = new Array(32);
+        var i = 0;
 
-		for (i = 0; i < geo.length; i++) {
-			if(geo.charAt(i) == "l" || geo.charAt(i) == "u" || geo.charAt(i) == "s" || geo.charAt(i) == "d") {
-				inData[i] = Number(geo.charCodeAt(i));
-				continue;
-			}
-			else if(geo.charAt(i) == " ") {
-				inData[i] = Number(geo.charCodeAt(i));
-				continue;
-			}
-			inData[i] = Number(geo.charAt(i).toString(16));
-		}
+        for (i = 0; i < geo.length; i++) {
+            if (geo.charAt(i) == "l" || geo.charAt(i) == "u" || geo.charAt(i) == "s" || geo.charAt(i) == "d") {
+                inData[i] = Number(geo.charCodeAt(i));
+                continue;
+            }
+            else if (geo.charAt(i) == " ") {
+                inData[i] = Number(geo.charCodeAt(i));
+                continue;
+            }
+            inData[i] = Number(geo.charAt(i).toString(16));
+        }
 
-		inData[i++] = 32;
-		inData[i++] = 101;
+        inData[i++] = 32;
+        inData[i++] = 101;
 
-		for(; i < tsize; i++) {
-			var rndInt = genKey.tk_getrnd_int();
-			inData[i] = rndInt % 100;
-		}
+        for(; i < tsize; i++) {
+            var rndInt = genKey.tk_getrnd_int();
+            inData[i] = rndInt % 100;
+        }
 
-		Seed.SeedSetKey(roundKey, sessionKey);
-		Seed.SeedEncryptCbc(roundKey, iv, inData, tsize, outData);
+        Seed.SeedSetKey(roundKey, sessionKey);
+        Seed.SeedEncryptCbc(roundKey, iv, inData, tsize, outData);
 
-		var encodedDataString = "";
+        var encodedDataString = "";
 
-		for (var k = 0; k < tsize; k++) encodedDataString += Number(outData[k]).toString(16) + ",";
+        for (var k = 0; k < tsize; k++) encodedDataString += Number(outData[k]).toString(16) + ",";
 
-		return encodedDataString.substring(0, encodedDataString.length - 1);
-	}
+        return encodedDataString.substring(0, encodedDataString.length - 1);
+    }
 }
 
 module.exports = Seed;
