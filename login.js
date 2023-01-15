@@ -3,12 +3,13 @@ const Jimp = require("jimp");
 const {chromium} = require("playwright-core");
 
 async function login(id, pw, apiKey) {
+    const browser = await chromium.launch({headless: false});
+
     try {
         setTimeout(function() {
             browser.close();
         }, 60000);
 
-        const browser = await chromium.launch({headless: false});
         const context = await browser.newContext();
         const page = await context.newPage();
 
@@ -146,6 +147,7 @@ async function login(id, pw, apiKey) {
         return {success: loginHeaders["set-cookie"].includes("KeepLoginConfig="), data: loginHeaders["set-cookie"].split("KeepLoginConfig=")[1].split(";")[0]};
     }
     catch (err) {
+        browser.close();
         return {success: false, data: err.toString()};
     }
 }
