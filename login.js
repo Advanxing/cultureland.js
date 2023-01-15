@@ -3,13 +3,9 @@ const Jimp = require("jimp");
 const {chromium} = require("playwright-core");
 
 async function login(id, pw, apiKey) {
-    const browser = await chromium.launch({headless: false});
+    const browser = await chromium.launch();
 
     try {
-        setTimeout(function() {
-            browser.close();
-        }, 60000);
-
         const context = await browser.newContext();
         const page = await context.newPage();
 
