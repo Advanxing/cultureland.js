@@ -67,8 +67,8 @@ app.post("/balance", async function (req, res) {
         });
     }
 
-    if (!login.sessionId) {
-        console.log(`${token.split("-")[0]} | LoginSessionID - ${Date.now() - now}ms - ${typeof login === "object" ? JSON.stringify(login) : login.toString()}`);
+    if (!login) {
+        console.log(`${token.split("-")[0]} | LoginResult - ${Date.now() - now}ms - ${typeof login === "object" ? JSON.stringify(login) : login.toString()}`);
         return res.status(500).json({
             amount: 0,
             reason: typeof login === "object" ? JSON.stringify(login) : login.toString(),
@@ -263,8 +263,8 @@ app.post("/charge", async function (req, res) {
         });
     }
 
-    if (!login.sessionId) {
-        console.log(`${token.split("-")[0]} | LoginSessionID - ${Date.now() - now}ms - ${typeof login === "object" ? JSON.stringify(login) : login.toString()}`);
+    if (!login) {
+        console.log(`${token.split("-")[0]} | LoginResult - ${Date.now() - now}ms - ${typeof login === "object" ? JSON.stringify(login) : login.toString()}`);
         return res.status(500).json({
             amount: 0,
             reason: typeof login === "object" ? JSON.stringify(login) : login.toString(),
