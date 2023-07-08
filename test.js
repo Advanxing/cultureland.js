@@ -1,7 +1,7 @@
-const cultureland = require("./cultureland");
+import Cultureland from "./cultureland.js";
 
-(async function() {
-    const client = new cultureland();
-    await client.login("keepLoginInfo").then(console.log).catch(console.error);
-    await client.charge(["0000", "0000", "0000", "000000"], false).then(console.log).catch(console.error);
-})();
+const client = new Cultureland();
+await client.login("ID", "PW").then(console.log).catch(console.error);
+await client.getBalance().then(console.log).catch(console.error);
+await client.charge(["0000", "0000", "0000", "000000"], false).then(console.log).catch(console.error);
+// await client.check("000000000000000000").then(console.log).catch(console.error);

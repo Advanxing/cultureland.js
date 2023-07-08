@@ -1,34 +1,32 @@
-﻿const initCycleTLS = require("cycletls");
-const fetch = require("node-fetch");
-const mTransKey = require("./transkey");
+﻿import qs from "querystring";
+import mTransKey from "./transkey.js";
+import crypto from "crypto";
+import axios from "axios";
+import { CookieJar } from "tough-cookie";
+import { HttpCookieAgent, HttpsCookieAgent } from "http-cookie-agent/http";
 
-class cultureland {
+class Cultureland {
     constructor() {
-        this.cookies = [];
-        this.cycleTLS = null;
+        this.jar = new CookieJar();
+        this.client = axios.create({
+            headers: {
+                "User-Agent": "Mozilla/5.0 (Linux; Android 11; SM-G998N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Mobile Safari/537.36",
+                "Connection": "keep-alive"
+            },
+            httpAgent: new HttpCookieAgent({ cookies: { jar: this.jar } }),
+            httpsAgent: new HttpsCookieAgent({ cookies: { jar: this.jar } })
+        });
     }
 
-    async check(pin, isMobile = true) {
-        const voucherData = await fetch(`https://www.cultureland.co.kr/voucher/getVoucherCheck${isMobile ? "Mobile" : ""}Used.do`, {
-            headers: {
-                "content-type": "application/x-www-form-urlencoded"
-            },
-            method: "POST",
-            body: "code=" + pin
-        }).then(res => res.json());
-
+    async checkPin(pin, isMobile = true) {
+        const voucherData = await this.client.post(`https://www.cultureland.co.kr/voucher/getVoucherCheck${isMobile ? "Mobile" : ""}Used.do`, qs.stringify({ code: pin })).then(res => res.data);
         return voucherData;
     }
 
-    async balance() {
+    async getBalance() {
         if (!await this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
 
-        const balance = await fetch("https://m.cultureland.co.kr/tgl/getBalance.json", {
-            headers: {
-                "cookie": this.cookies.join("; ")
-            },
-            method: "POST"
-        }).then(res => res.json());
+        const balance = await this.client.post("https://m.cultureland.co.kr/tgl/getBalance.json").then(res => res.data);
 
         if (balance.resultMessage !== "성공") throw new Error("ERR_BALANCE_FAILED");
 
@@ -40,67 +38,52 @@ class cultureland {
     }
 
     async charge(pin, check = true) {
-        //if (!await this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
+        // if (!await this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
 
         if (check) {
-            //const voucherData = await this.check(pin);
-            //console.log(voucherData);
+            // const voucherData = await this.check(pin);
+            // console.log(voucherData);
 
             // TODO: validate voucher codes
         }
 
-        const pageRequest = await fetch(pin[3].length === 4 ? "https://m.cultureland.co.kr/csh/cshGiftCard.do" : "https://m.cultureland.co.kr/csh/cshGiftCardOnline.do", {
-            headers: {
-                cookie: this.cookies.join("; ")
-            }
-        });
-
-        for (const cookie of pageRequest.headers.raw()["set-cookie"]) {
-            const cookieIndex = this.cookies.findIndex(c => c.startsWith(cookie.split("=")[0]));
-            if (cookieIndex) this.cookies[cookieIndex] = cookie.split(";")[0];
-            else this.cookies.push(cookie.split(";")[0]);
-        }
+        await this.client.get(pin[3].length === 4 ? "https://m.cultureland.co.kr/csh/cshGiftCard.do" : "https://m.cultureland.co.kr/csh/cshGiftCardOnline.do");
 
         const transKey = new mTransKey();
-        await transKey.getServletData(this.cookies);
-        await transKey.getKeyData(this.cookies);
+        await transKey.getServletData(this.jar);
+        await transKey.getKeyData(this.jar);
 
-        const keypad = await transKey.createKeypad(this.cookies, "number", "txtScr14", "scr14", "password");
+        const keypad = await transKey.createKeypad(this.jar, "number", "txtScr14", "scr14", "password");
         const skipData = await keypad.getSkipData();
         const encryptedPin = keypad.encryptPassword(pin[3], skipData);
 
-        const requestBody = `versionCode=&scr11=${pin[0]}&scr12=${pin[1]}&scr13=${pin[2]}&scr14=${"*".repeat(pin[3].length)}&seedKey=${transKey.crypto.encSessionKey}&initTime=${transKey.initTime}&keyIndex_txtScr14=${keypad.keyIndex}&keyboardType_txtScr14=numberMobile&fieldType_txtScr14=password&transkeyUuid=${transKey.crypto.transkeyUuid}&transkey_txtScr14=${encodeURIComponent(encryptedPin)}&transkey_HM_txtScr14=${transKey.crypto.hmacDigest(encryptedPin)}`;
-        const chargeRequest = await this.cycleTLS(pin[3].length === 4 ? "https://m.cultureland.co.kr/csh/cshGiftCardProcess.do" : "https://m.cultureland.co.kr/csh/cshGiftCardOnlineProcess.do", {
-            headers: {
-                "content-type": "application/x-www-form-urlencoded",
-                cookie: this.cookies.join("; ")
-            },
-            body: requestBody,
-            ja3: "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-18-51-45-43-27-17513-21,29-23-24,0",
-            userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
-            disableRedirect: true
-        }, "POST");
-
-        for (const cookie of chargeRequest.headers["Set-Cookie"]) {
-            const cookieIndex = this.cookies.findIndex(c => c.startsWith(cookie.split("=")[0]));
-            if (cookieIndex) this.cookies[cookieIndex] = cookie.split(";")[0];
-            else this.cookies.push(cookie.split(";")[0]);
-        }
-
-        if (chargeRequest.status !== 302) throw new Error("ERR_CHARGE_FAILED");
-
-        const chargeResult = await fetch("https://m.cultureland.co.kr/" + chargeRequest.headers.Location, {
-            headers: {
-                cookie: this.cookies.join("; ")
-            }
-        }).then(res => res.text());
-
+        const requestBody = qs.stringify({
+            versionCode: "",
+            scr11: pin[0],
+            scr12: pin[1],
+            scr13: pin[2],
+            scr14: "*".repeat(pin[3].length),
+            seedKey: transKey.crypto.encSessionKey,
+            initTime: transKey.initTime,
+            keyIndex_txtScr14: keypad.keyIndex,
+            keyboardType_txtScr14: "numberMobile",
+            fieldType_txtScr14: "password",
+            transkeyUuid: transKey.crypto.transkeyUuid,
+            transkey_txtScr14: encryptedPin,
+            transkey_HM_txtScr14: transKey.crypto.hmacDigest(encryptedPin)
+        });
+        const chargeRequest = await this.client.post(pin[3].length === 4 ? "https://m.cultureland.co.kr/csh/cshGiftCardProcess.do" : "https://m.cultureland.co.kr/csh/cshGiftCardOnlineProcess.do", requestBody, {
+            maxRedirects: 0,
+            validateStatus: status => status === 302
+        }).catch(() => { throw new Error("ERR_CHARGE_FAILED") });
+        const chargeResult = await this.client.get("https://m.cultureland.co.kr/" + chargeRequest.headers["location"]).then(res => res.data);
         const chargeData = chargeResult.split("<tbody>")[1].split("<td>");
         const reason = chargeData[3].split("</td>")[0].replace(/<\/?[\d\w\s='#]+>/g, "");
-        const amount = Number(chargeData[4].split("</td>")[0].trim().replace("원", "").replace(/,/g, ""));
-
+        const amount = Number(chargeData[4].split("</td>")[0].replace(/\D/g, ""));
+        const chargeData2 = chargeResult.split('class="result">')[1].split("</div>")[0];
+        const [normalAmount, walletAmount] = chargeData2.split("dlWalletChargeAmt").map(x => Number(x.replace(/\D/g, "")));
         return {
-            amount,
+            amount: Math.min(Math.max(normalAmount, walletAmount), amount),
             reason
         };
     }
@@ -108,29 +91,24 @@ class cultureland {
     async gift(amount, quantity, phone) {
         if (!await this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
 
-        await fetch("https://m.cultureland.co.kr/gft/gftPhoneApp.do", {
-            headers: {
-                cookie: this.cookies.join("; ")
-            }
-        });
+        await this.client.get("https://m.cultureland.co.kr/gft/gftPhoneApp.do");
 
-        const giftRequest = fetch("https://m.cultureland.co.kr/gft/gftPhoneCashProc.do", {
-            headers: {
-                cookie: this.cookies.join("; "),
-                "content-type": "application/x-www-form-urlencoded"
-            },
-            method: "POST",
-            redirect: "manual",
-            body: `revEmail=&sendType=S&userKey=${user_key}&limitGiftBank=N&giftCategory=M&amount=${amount}&quantity=${quantity}&revPhone=${phone}&sendTitl=&paymentType=cash`
-        });
+        await this.client.post("https://m.cultureland.co.kr/gft/gftPhoneCashProc.do", qs.stringify({
+            revEmail: "",
+            sendType: "S",
+            userKey: user_key,
+            limitGiftBank: "N",
+            giftCategory: "M",
+            amount,
+            quantity,
+            revPhone: phone,
+            sendTitl: "",
+            paymentType: "cash"
+        }), {
+            validateStatus: status => status === 302
+        }).catch(() => { throw new Error("ERR_GIFT_FAILED"); });
 
-        if (giftRequest.status !== 302) throw new Error("ERR_GIFT_FAILED");
-
-        const giftResult = await fetch("https://m.cultureland.co.kr/gft/gftPhoneCfrm.do", {
-            headers: {
-                cookie: this.cookies.join("; ")
-            }
-        }).then(res => res.text());
+        const giftResult = await this.client.get("https://m.cultureland.co.kr/gft/gftPhoneCfrm.do").then(res => res.data);
 
         if (giftResult.includes('<p>선물(구매)하신 <strong class="point">모바일문화상품권</strong>을<br /><strong class="point">요청하신 정보로 전송</strong>하였습니다.</p>')) {
             const giftData = giftResult.split("- 상품권 바로 충전 : https://m.cultureland.co.kr/csh/dc.do?code=")[1].split("&lt;br&gt;");
@@ -146,25 +124,14 @@ class cultureland {
     }
 
     async isLogin() {
-        const isLogin = await fetch("https://m.cultureland.co.kr/mmb/isLogin.json", {
-            headers: {
-                cookie: this.cookies.join("; ")
-            },
-            method: "POST"
-        }).then(res => res.text());
-
-        return isLogin === "true";
+        const isLogin = await this.client.post("https://m.cultureland.co.kr/mmb/isLogin.json").then(res => res.data);
+        return isLogin;
     }
 
     async getUserInfo() {
         if (!this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
 
-        const userInfo = await fetch("https://m.cultureland.co.kr/tgl/flagSecCash.json", {
-            headers: {
-                cookie: this.cookies.join("; ")
-            },
-            method: "POST"
-        }).then(res => res.json());
+        const userInfo = await this.client.post("https://m.cultureland.co.kr/tgl/flagSecCash.json").then(res => res.data);
 
         if (userInfo.resultMessage !== "성공") throw new Error("ERR_USERINFO_FAILED");
 
@@ -179,30 +146,45 @@ class cultureland {
         return userInfo;
     }
 
-    async login(keepLoginInfo) {
-        keepLoginInfo = encodeURIComponent(keepLoginInfo);
-        this.cookies.push("KeepLoginConfig=" + keepLoginInfo);
-        const loginRequest = await fetch("https://m.cultureland.co.kr/mmb/loginProcess.do", {
-            headers: {
-                "content-type": "application/x-www-form-urlencoded",
-                cookie: this.cookies.join("; ")
-            },
-            method: "POST",
-            redirect: "manual",
-            body: "keepLoginInfo=" + keepLoginInfo
+    async login(id, password) {
+        this.jar.setCookieSync("KeepLoginConfig=" + crypto.randomBytes(4).toString("hex"), "https://m.cultureland.co.kr");
+        const transKey = new mTransKey();
+        await transKey.getServletData(this.jar);
+        await transKey.getKeyData(this.jar);
+
+        const keypad = await transKey.createKeypad(this.jar, "qwerty", "passwd", "passwd", "password");
+        const skipData = await keypad.getSkipData();
+        const encryptedPassword = keypad.encryptPassword(password, skipData);
+        const requestBody = qs.stringify({
+            agentUrl: "",
+            returnUrl: "",
+            keepLoginInfo: "",
+            phoneForiOS: "",
+            hidWebType: "other",
+            bioCheckResult: "",
+            browserId: "", // /assets/js/egovframework/com/cland/was/mmb/loginMain.js?version=1.0 LINE 19
+            userId: id,
+            passwd: "*".repeat(password.length),
+            keepLogin: "Y",
+            seedKey: transKey.crypto.encSessionKey,
+            initTime: transKey.initTime,
+            keyIndex_passwd: keypad.keyIndex,
+            keyboardType_passwd: "qwertyMobile",
+            fieldType_passwd: "password",
+            transkeyUuid: transKey.crypto.transkeyUuid,
+            transkey_passwd: encryptedPassword,
+            transkey_HM_passwd: transKey.crypto.hmacDigest(encryptedPassword)
         });
-
-        if (loginRequest.headers.raw()["location"] === "https://m.cultureland.co.kr/cmp/authConfirm.do") throw new Error("ERR_LOGIN_RESTRICTED");
-        this.cookies = loginRequest.headers.raw()["set-cookie"].map(c => c.split(";")[0]);
-
-        if (loginRequest.status !== 302) throw new Error("ERR_LOGIN_FAILED");
-
-        this.cycleTLS = await initCycleTLS();
-
-        return {
-            sessionId: this.cookies.find(c => c.startsWith("JSESSIONID=")).split("=")[1]
-        };
+        const loginRequest = await this.client.post("https://m.cultureland.co.kr/mmb/loginProcess.do", requestBody, {
+            headers: {
+                "Referer": "https://m.cultureland.co.kr/mmb/loginMain.do"
+            },
+            maxRedirects: 0,
+            validateStatus: status => status === 302
+        }).catch(() => { throw new Error("ERR_LOGIN_FAILED"); });
+        if (loginRequest.headers["location"] === "https://m.cultureland.co.kr/cmp/authConfirm.do") throw new Error("ERR_LOGIN_RESTRICTED");
+        return true;
     }
 }
 
-module.exports = cultureland;
+export default Cultureland;

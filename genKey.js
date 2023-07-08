@@ -1,5 +1,5 @@
-const crypto = require("crypto");
-const screen = {width: 1920, height: 1080, availWidth: 1920, availHeight: 1040, colorDepth: 24};
+import crypto from "crypto";
+const screen = { width: 1920, height: 1080, availWidth: 1920, availHeight: 1040, colorDepth: 24 };
 
 class GenKey {
     static GenerateKey(bit) {
@@ -54,4 +54,4 @@ class GenKey {
     }
 }
 
-module.exports = GenKey;
+export default GenKey;

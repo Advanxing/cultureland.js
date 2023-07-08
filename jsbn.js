@@ -1119,7 +1119,7 @@ function bnpDAddOffset(n, w) {
 }
 
 // A "null" reducer
-function NullExp() {}
+function NullExp() { }
 function nNop(x) {
   return x;
 }
@@ -1764,7 +1764,7 @@ function rng_get_bytes(ba) {
   for (i = 0; i < ba.length; ++i) ba[i] = rng_get_byte();
 }
 
-function SecureRandom() {}
+function SecureRandom() { }
 
 SecureRandom.prototype.nextBytes = rng_get_bytes;
 
@@ -1813,8 +1813,8 @@ function prng_newstate() {
 // An array of bytes the size of the pool will be passed to init()
 var rng_psize = 256;
 
-module.exports = {
-  default: BigInteger,
-  BigInteger: BigInteger,
-  SecureRandom: SecureRandom,
+export default BigInteger;
+export {
+  BigInteger,
+  SecureRandom
 };

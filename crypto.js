@@ -1,11 +1,12 @@
-const {BigInteger, SecureRandom} = require("./jsbn");
-const genKey = require("./genKey");
+import { BigInteger, SecureRandom } from "./jsbn.js";
+import genKey from "./genKey.js";
+import crypto from "crypto";
 
 const pKey = ["00ce263e3fd958264da51416be398e42d893df856851e56358377fa4296accb1695b772453b6fb9df530633739648db5bdcec56f9b4358d96635af646a96c2ffdabfc96319074aa99ac94494071225ec43f4ce1e03dc9d0b6df4f56c5d2c2b2e743c3836570de64aace82d9c35977568390fe196a67dd19b5a30ec66a8d0405a9d160ec7ad81f33e7e66e5da42938aa6ad8c8b743cc0f87b4a4954fbc1c78303046e503cfbb430c37a27503a6ff9ae403f51e311b07d4f005e925745ea3f9c6c2ad0033e41ed97fd24e2292de3336433d92fc1c22ffed72645c443a679ac52c64c101c67bdba389a3276dfd1539af9eab8cef96cf565bebb688da7d60822390a4b", "010001"];
 
-class crypto {
+class Crypto {
     constructor() {
-        this.sessionKey = [, , , , , , , , , , , , , , , ];
+        this.sessionKey = [, , , , , , , , , , , , , , ,];
         this.transkeyUuid = genKey.tk_sh1prng();
         this.genSessionKey = genKey.GenerateKey(128);
         for (var i = 0; i < 16; i++) this.sessionKey[i] = Number("0x0" + this.genSessionKey.charAt(i));
@@ -60,7 +61,7 @@ class crypto {
         }
         return this.toHexStr(H0) + this.toHexStr(H1) + this.toHexStr(H2) + this.toHexStr(H3) + this.toHexStr(H4);
     }
-    
+
     tk_f_(s, x, y, z) {
         switch (s) {
             case 0:
@@ -73,7 +74,7 @@ class crypto {
                 return x ^ y ^ z;
         }
     }
-    
+
     ROTL(x, n) {
         return (x << n) | (x >>> (32 - n));
     }
@@ -91,9 +92,9 @@ class crypto {
         var temp = "";
         for (var i = 0; i < source.length; i += 2) temp += String.fromCharCode(parseInt(source.substring(i, i + 2), 16));
         return temp;
-	}
+    }
 
-	char2hex(source) {
+    char2hex(source) {
         var hex = "";
         for (var i = 0; i < source.length; i++) {
             var temp = source[i].toString(16);
@@ -107,9 +108,9 @@ class crypto {
             hex += temp;
         }
         return hex;
-	}
+    }
 
-	xor(a, b) {
+    xor(a, b) {
         var length = Math.min(a.length, b.length);
         var temp = "";
         for (var i = 0; i < length; i++) temp += String.fromCharCode(a.charCodeAt(i) ^ b.charCodeAt(i));
@@ -117,9 +118,9 @@ class crypto {
         length = Math.max(a.length, b.length) - length;
         for (var i = 0; i < length; i++) temp += "\x00";
         return temp;
-	}
+    }
 
-	mgf1(mgfSeed, maskLen) {
+    mgf1(mgfSeed, maskLen) {
         var t = "";
         var hLen = 20;
         var count = Math.ceil(maskLen / hLen);
@@ -129,35 +130,35 @@ class crypto {
         }
 
         return t.substring(0, maskLen);
-	}
+    }
 
-	xorb(a, b) {
-		var length = Math.min(a.length, b.length);
-		var temp = "";
-		for (var i = 0; i < length; i++) temp += String.fromCharCode(a[i] ^ b[i]);
+    xorb(a, b) {
+        var length = Math.min(a.length, b.length);
+        var temp = "";
+        for (var i = 0; i < length; i++) temp += String.fromCharCode(a[i] ^ b[i]);
 
-		length = Math.max(a.length, b.length) - length;
-		for (var i = 0; i < length; i++) temp += "\x00";
-		return temp;
-	}
+        length = Math.max(a.length, b.length) - length;
+        for (var i = 0; i < length; i++) temp += "\x00";
+        return temp;
+    }
 
-	strtobin(a) {
-		var ret = new Uint8Array(a.length);
-		for (var i = 0; i < a.length; i++) ret[i]= a.charCodeAt(i);
+    strtobin(a) {
+        var ret = new Uint8Array(a.length);
+        for (var i = 0; i < a.length; i++) ret[i] = a.charCodeAt(i);
 
-		return ret;
-	}
+        return ret;
+    }
 
-	bytecopy(input, start, end) {
-		var k = new Array(end - start); 
-		for (var i = start, j = 0; i < end; i++, j++) k[j] = input[i];
+    bytecopy(input, start, end) {
+        var k = new Array(end - start);
+        for (var i = start, j = 0; i < end; i++, j++) k[j] = input[i];
 
-		return k;
-	}
+        return k;
+    }
 
-	clear(input) {
-		for (var i = 0; i < input.length; i++) input[i] = 0;
-	}
+    clear(input) {
+        for (var i = 0; i < input.length; i++) input[i] = 0;
+    }
 
     mgf1(mgfSeed, maskLen) {
         let t = "";
@@ -172,7 +173,7 @@ class crypto {
     }
 
     hmacDigest(plainText) {
-        return require("crypto").createHmac("sha256", this.genSessionKey).update(plainText).digest("hex");
+        return crypto.createHmac("sha256", this.genSessionKey).update(plainText).digest("hex");
     }
 
     rsaes_oaep_encrypt(m, n, k, e) {
@@ -189,15 +190,14 @@ class crypto {
 
         var db = lHash + ps + "\x01" + m;
         var seed = "";
-        for (var i = 0; i < hLen + 4; i+=4)
-        {
+        for (var i = 0; i < hLen + 4; i += 4) {
             temp = new Array(4);
             SecureRandom.prototype.nextBytes(temp);
             seed += String.fromCharCode(temp[0], temp[1], temp[2], temp[3]);
         }
         seed = seed.substring(4 - seed.length % 4);
         var dbMask = this.mgf1(seed, k - hLen - 1);
-        
+
         var maskedDB = this.xor(db, dbMask);
         var seedMask = this.mgf1(maskedDB, hLen);
         var maskedSeed = this.xor(seed, seedMask);
@@ -212,7 +212,7 @@ class crypto {
         if (c.length & 1) c = "0" + c;
 
         return c;
-	}
+    }
 
     phpbb_encrypt2048(plaintext, k, e, n) {
         var temp = new Array(32);
@@ -229,7 +229,7 @@ class crypto {
         }
 
         return _rsaoen;
-	}
+    }
 }
 
-module.exports = crypto;
+export default Crypto;

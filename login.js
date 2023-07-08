@@ -1,6 +1,6 @@
-const fetch = require("node-fetch");
-const Jimp = require("jimp");
-const {chromium} = require("playwright-core");
+import axios from "axios";
+import Jimp from "jimp";
+import { chromium } from "playwright-core";
 
 async function login(id, pw, apiKey) {
     const browser = await chromium.launch();
@@ -13,18 +13,12 @@ async function login(id, pw, apiKey) {
 
         const botDetectCaptcha = await page.waitForResponse(/https:\/\/m\.cultureland\.co\.kr\/botdetectcaptcha\?get=image&c=cultureCaptcha&t=*/).then(res => res.body());
 
-        let captchaTask = await fetch(`http://2captcha.com/in.php?key=${apiKey}&method=base64&min_len=5&max_len=5&json=1`, {
-            headers: {
-                "content-type": "application/json"
-            },
-            method: "POST",
-            body: JSON.stringify({
-                body: Buffer.from(botDetectCaptcha).toString("base64")
-            })
-        }).then(res => res.json());
+        let captchaTask = await axios.post(`http://2captcha.com/in.php?key=${apiKey}&method=base64&min_len=5&max_len=5&json=1`, {
+            body: Buffer.from(botDetectCaptcha).toString("base64")
+        }).then(res => res.data);
 
         if (captchaTask.status !== 1)
-            return {success: false, data: captchaTask.request};
+            return { success: false, data: captchaTask.request };
 
         const taskId = captchaTask.request;
 
@@ -99,7 +93,7 @@ async function login(id, pw, apiKey) {
                     await keys[33].click();
             }
             else
-                return {success: false, data: "UNKNOWN_CHAR_" + char};
+                return { success: false, data: "UNKNOWN_CHAR_" + char };
 
             charIndex++;
         }
@@ -107,14 +101,14 @@ async function login(id, pw, apiKey) {
         if (pw.length < 12)
             await extraKeys[2].click();
 
-        captchaTask = await fetch(`https://2captcha.com/res.php?key=${apiKey}&action=get&id=${taskId}&json=1`).then(res => res.json());
+        captchaTask = await axios.get(`https://2captcha.com/res.php?key=${apiKey}&action=get&id=${taskId}&json=1`).then(res => res.data);
         while (captchaTask.request === "CAPCHA_NOT_READY") {
             await new Promise(resolve => setTimeout(resolve, 1000));
-            captchaTask = await fetch(`https://2captcha.com/res.php?key=${apiKey}&action=get&id=${taskId}&json=1`).then(res => res.json());
+            captchaTask = await axios.get(`https://2captcha.com/res.php?key=${apiKey}&action=get&id=${taskId}&json=1`).then(res => res.data);
         }
 
         if (captchaTask.status !== 1)
-            return {success: false, data: captchaTask.request};
+            return { success: false, data: captchaTask.request };
 
         await page.type("#captchaCode", captchaTask.request);
         page.click("#btnLogin");
@@ -126,25 +120,25 @@ async function login(id, pw, apiKey) {
                 const responseBody = await loginProcess.text();
                 if (responseBody.includes("loginErrMsg")) {
                     const errorMsg = responseBody.split("frmRedirect")[1].split("</form>")[0].split('"');
-                    return {success: false, data: `[${errorMsg[16]}] ${errorMsg[22]}`};
+                    return { success: false, data: `[${errorMsg[16]}] ${errorMsg[22]}` };
                 }
-                return {success: false, data: "LOGINPROCESS_STATUS_" + loginProcess.status()};
+                return { success: false, data: "LOGINPROCESS_STATUS_" + loginProcess.status() };
             }
             case 302:
                 break;
             default:
-                return {success: false, data: "LOGINPROCESS_STATUS_" + loginProcess.status()};
+                return { success: false, data: "LOGINPROCESS_STATUS_" + loginProcess.status() };
         }
 
         const loginHeaders = await loginProcess.allHeaders();
 
         browser.close();
 
-        return {success: loginHeaders["set-cookie"].includes("KeepLoginConfig="), data: loginHeaders["set-cookie"].split("KeepLoginConfig=")[1].split(";")[0]};
+        return { success: loginHeaders["set-cookie"].includes("KeepLoginConfig="), data: loginHeaders["set-cookie"].split("KeepLoginConfig=")[1].split(";")[0] };
     }
     catch (err) {
         browser.close();
-        return {success: false, data: err.toString()};
+        return { success: false, data: err.toString() };
     }
 }
 

@@ -1,29 +1,29 @@
-const cultureland = require("./cultureland");
-const express = require("express");
-const morgan = require("morgan");
+import Cultureland from "./cultureland.js";
+import express from "express";
+import morgan from "morgan";
 const app = express();
 
 const tokens = [
     "00000000-0000-0000-0000-000000000000"
 ];
 
-process.on("uncaughtException", function(err, origin) {
+process.on("uncaughtException", function (err, origin) {
     console.log(`[ UNCAUGHTEXCEPTION - ${err.name} ]\n${err.message}\n${err.stack}\n${origin}`);
 });
 
-process.on("unhandledRejection", function(err, origin) {
+process.on("unhandledRejection", function (err, origin) {
     console.log(`[ UNHANDLEDREJECTION ]\n${typeof err === "object" ? JSON.stringify(err) : err.toString()}\n${origin}`);
 });
 
 app.use(express.json());
 app.use(morgan("combined"));
 
-app.post("/balance", async function(req, res) {
+app.post("/balance", async function (req, res) {
     const now = Date.now();
 
-    const {keepLoginInfo, token} = req.body;
+    const { id, password, token } = req.body;
 
-    if (!keepLoginInfo) {
+    if (!id || !password) {
         console.log(`${token.split("-")[0]} | ERR_LOGIN_REQUIRED - ${Date.now() - now}ms`);
         return res.status(400).json({
             amount: 0,
@@ -53,9 +53,9 @@ app.post("/balance", async function(req, res) {
         });
     }
 
-    const client = new cultureland();
+    const client = new Cultureland();
 
-    const login = await client.login(decodeURIComponent(keepLoginInfo)).catch(err => err);
+    const login = await client.login(id, password).catch(err => err);
 
     if (login.message) {
         console.log(`${token.split("-")[0]} | Login - ${Date.now() - now}ms - ${login.message}`);
@@ -77,7 +77,7 @@ app.post("/balance", async function(req, res) {
         });
     }
 
-    const balance = await client.balance().catch(err => err);
+    const balance = await client.getBalance().catch(err => err);
 
     if (balance.message) {
         console.log(`${token.split("-")[0]} | BalanceMessage - ${Date.now() - now}ms - ${balance.message}`);
@@ -99,12 +99,12 @@ app.post("/balance", async function(req, res) {
     });
 });
 
-app.post("/charge", async function(req, res) {
+app.post("/charge", async function (req, res) {
     const now = Date.now();
 
-    const {keepLoginInfo, pin, token} = req.body;
+    const { id, password, pin, token } = req.body;
 
-    if (!keepLoginInfo) {
+    if (!id || !password) {
         console.log(`${token.split("-")[0]} | ERR_LOGIN_REQUIRED - ${Date.now() - now}ms`);
         return res.status(400).json({
             amount: 0,
@@ -114,7 +114,7 @@ app.post("/charge", async function(req, res) {
         });
     }
 
-    if (typeof keepLoginInfo !== "string") {
+    if (typeof id !== "string" || typeof password !== "string") {
         console.log(`${token.split("-")[0]} | ERR_INVALID_TYPE 1 - ${Date.now() - now}ms`);
         return res.status(400).json({
             amount: 0,
@@ -249,9 +249,9 @@ app.post("/charge", async function(req, res) {
         });
     }
 
-    const client = new cultureland();
+    const client = new Cultureland();
 
-    const login = await client.login(decodeURIComponent(keepLoginInfo)).catch(err => err);
+    const login = await client.login(id, password).catch(err => err);
 
     if (login.message) {
         console.log(`${token.split("-")[0]} | Login - ${Date.now() - now}ms - ${login.message}`);
@@ -305,6 +305,6 @@ app.post("/charge", async function(req, res) {
     });
 });
 
-app.listen(80, function() {
+app.listen(80, function () {
     console.log("[LOG] Listening on port 80");
 });
