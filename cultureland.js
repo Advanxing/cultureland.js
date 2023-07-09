@@ -16,12 +16,45 @@ class Cultureland {
             httpAgent: new HttpCookieAgent({ cookies: { jar: this.jar } }),
             httpsAgent: new HttpsCookieAgent({ cookies: { jar: this.jar } })
         });
-    }
+    };
 
-    async checkPin(pin, isMobile = true) {
-        const voucherData = await this.client.post(`https://www.cultureland.co.kr/voucher/getVoucherCheck${isMobile ? "Mobile" : ""}Used.do`, qs.stringify({ code: pin })).then(res => res.data);
-        return voucherData;
-    }
+    async checkPin(pin) {
+        if (!await this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
+        const pinFormatResult = Cultureland.checkPinFormat(pin);
+        if (!pinFormatResult.result) return {
+            result: false,
+            reason: pinFormatResult.reason
+        };
+
+        const transKey = new mTransKey();
+        await transKey.getServletData(this.jar);
+        await transKey.getKeyData(this.jar);
+
+        const keypad = await transKey.createKeypad(this.jar, "number", "input-14", "culturelandInput", "tel");
+        const skipData = await keypad.getSkipData();
+        const encryptedPin = keypad.encryptPassword(pin[3], skipData);
+
+        const voucherData = await this.client.post("https://m.cultureland.co.kr/vchr/getVoucherCheckMobileUsed.json", qs.stringify({
+            "culturelandNo": pinFormatResult.pinParts[0] + pinFormatResult.pinParts[1] + pinFormatResult.pinParts[2],
+            "culturelandInput": pinFormatResult.pinParts[0],
+            "culturelandInput": pinFormatResult.pinParts[1],
+            "culturelandInput": pinFormatResult.pinParts[2],
+            "culturelandInput": "*".repeat(pinFormatResult.pinParts[3].length),
+            "seedKey": transKey.crypto.encSessionKey,
+            "initTime": transKey.initTime,
+            "keyIndex_input-14": keypad.keyIndex,
+            "keyboardType_input-14": "numberMobile",
+            "fieldType_input-14": "tel",
+            "transkeyUuid": transKey.crypto.transkeyUuid,
+            "transkey_input-14": encryptedPin,
+            "transkey_HM_input-14": transKey.crypto.hmacDigest(encryptedPin)
+        })).then(res => res.data);
+        console.log(voucherData);
+        return {
+            result: true,
+            data: voucherData
+        };
+    };
 
     async getBalance() {
         if (!await this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
@@ -35,17 +68,17 @@ class Cultureland {
         }
 
         return balance;
-    }
+    };
 
-    async charge(pin, check = true) {
+    async charge(pin, checkPin = true) {
         // if (!await this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
 
-        if (check) {
-            // const voucherData = await this.check(pin);
+        if (checkPin) {
+            // const voucherData = await this.checkPin(pin);
             // console.log(voucherData);
 
             // TODO: validate voucher codes
-        }
+        };
 
         await this.client.get(pin[3].length === 4 ? "https://m.cultureland.co.kr/csh/cshGiftCard.do" : "https://m.cultureland.co.kr/csh/cshGiftCardOnline.do");
 
@@ -86,7 +119,7 @@ class Cultureland {
             amount: Math.min(Math.max(normalAmount, walletAmount), amount),
             reason
         };
-    }
+    };
 
     async gift(amount, quantity, phone) {
         if (!await this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
@@ -121,12 +154,12 @@ class Cultureland {
         }
 
         throw new Error("ERR_GIFT_FAILED");
-    }
+    };
 
     async isLogin() {
         const isLogin = await this.client.post("https://m.cultureland.co.kr/mmb/isLogin.json").then(res => res.data);
         return isLogin;
-    }
+    };
 
     async getUserInfo() {
         if (!this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
@@ -144,7 +177,7 @@ class Cultureland {
         userInfo.userKey = Number(userInfo.userKey);
 
         return userInfo;
-    }
+    };
 
     async login(id, password) {
         this.jar.setCookieSync("KeepLoginConfig=" + crypto.randomBytes(4).toString("hex"), "https://m.cultureland.co.kr");
@@ -184,7 +217,58 @@ class Cultureland {
         }).catch(() => { throw new Error("ERR_LOGIN_FAILED"); });
         if (loginRequest.headers["location"] === "https://m.cultureland.co.kr/cmp/authConfirm.do") throw new Error("ERR_LOGIN_RESTRICTED");
         return true;
-    }
+    };
+
+    static checkPinFormat(pin) {
+        if (typeof pin !== "string" || !pin) return {
+            result: false,
+            reason: "ERR_INVALID_PIN_TYPE"
+        };
+        pin = pin.replace(/\D/g, "");
+        let pinParts = [];
+        if (pin.length === 16 || pin.length === 18) pinParts = [pin.substring(0, 4), pin.substring(4, 8), pin.substring(8, 12), pin.substring(12)];
+        else return {
+            result: false,
+            reason: "ERR_INVALID_PIN_DELIMITER"
+        };
+        pinParts = pinParts.filter(Boolean).map(p => String(p).trim());
+
+        if (pinParts.some(p => Number(p) === NaN)) return {
+            result: false,
+            reason: "ERR_INVALID_TYPEOF_PIN_PART"
+        };
+
+        if (
+            pinParts.length !== 4 ||
+            pinParts[0].length !== 4 ||
+            pinParts[1].length !== 4 ||
+            pinParts[2].length !== 4 ||
+            ![4, 6].includes(pinParts[3].length)
+        ) return {
+            result: false,
+            reason: "ERR_INVALID_PIN_LENGTH 1"
+        };
+
+        if (pinParts[0].startsWith("41")) {
+            if (pinParts[3].length !== 4) return {
+                result: false,
+                reason: "ERR_INVALID_PIN_LENGTH 2"
+            };
+        } else if (!["20", "21", "22", "23", "24", "25", "30", "31", "32", "33", "34", "35", "40", "42", "43", "44", "45", "51", "52", "53", "54", "55"].includes(pinParts[0].substring(0, 2))) return {
+            result: false,
+            reason: "ERR_INVALID_PIN_PREFIX 1"
+        };
+
+        if (pinParts[0].startsWith("41") && !(pinParts[0].startsWith("416") || pinParts[0].startsWith("418"))) return {
+            result: false,
+            reason: "ERR_INVALID_PIN_PREFIX 2"
+        };
+
+        return {
+            result: true,
+            pinParts
+        };
+    };
 }
 
 export default Cultureland;
