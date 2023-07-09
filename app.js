@@ -23,47 +23,49 @@ app.use(morgan("combined"));
 
 app.use((req, res, next) => {
     req.start = Date.now();
-    const { id, password, token } = req.body;
+    if (req.method === "POST") {
+        const { id, password, token } = req.body;
 
-    if (!token) {
-        console.log(`NO_TOKEN | ERR_TOKEN_REQUIRED - ${Date.now() - req.start}ms`);
-        return res.status(400).json({
-            amount: 0,
-            reason: "ERR_TOKEN_REQUIRED",
-            result: false,
-            timeout: Date.now() - req.start
-        });
-    }
+        if (!token) {
+            console.log(`NO_TOKEN | ERR_TOKEN_REQUIRED - ${Date.now() - req.start}ms`);
+            return res.status(400).json({
+                amount: 0,
+                reason: "ERR_TOKEN_REQUIRED",
+                result: false,
+                timeout: Date.now() - req.start
+            });
+        }
 
-    if (!tokens.includes(token)) {
-        console.log(`${typeof token === "string" ? token.split("-")[0] : "INVALID_TOKEN_TYPE"} | ERR_INVALID_TOKEN - ${Date.now() - req.start}ms`);
-        return res.status(400).json({
-            amount: 0,
-            reason: "ERR_INVALID_TOKEN",
-            result: false,
-            timeout: Date.now() - req.start
-        });
-    }
+        if (!tokens.includes(token)) {
+            console.log(`${typeof token === "string" ? token.split("-")[0] : "INVALID_TOKEN_TYPE"} | ERR_INVALID_TOKEN - ${Date.now() - req.start}ms`);
+            return res.status(400).json({
+                amount: 0,
+                reason: "ERR_INVALID_TOKEN",
+                result: false,
+                timeout: Date.now() - req.start
+            });
+        }
 
-    if (typeof id !== "string" || typeof password !== "string" || typeof token !== "string") {
-        console.log(`NO_TOKEN | ERR_INVALID_TYPE - ${Date.now() - req.start}ms`);
-        return res.status(400).json({
-            amount: 0,
-            reason: "ERR_INVALID_TYPE",
-            result: false,
-            timeout: Date.now() - req.start
-        });
-    }
+        if (typeof id !== "string" || typeof password !== "string" || typeof token !== "string") {
+            console.log(`NO_TOKEN | ERR_INVALID_TYPE - ${Date.now() - req.start}ms`);
+            return res.status(400).json({
+                amount: 0,
+                reason: "ERR_INVALID_TYPE",
+                result: false,
+                timeout: Date.now() - req.start
+            });
+        }
 
-    if (!id || !password) {
-        console.log(`${token.split("-")[0]} | ERR_LOGIN_REQUIRED - ${Date.now() - req.start}ms`);
-        return res.status(400).json({
-            amount: 0,
-            reason: "ERR_LOGIN_REQUIRED",
-            result: false,
-            timeout: Date.now() - req.start
-        });
-    }
+        if (!id || !password) {
+            console.log(`${token.split("-")[0]} | ERR_LOGIN_REQUIRED - ${Date.now() - req.start}ms`);
+            return res.status(400).json({
+                amount: 0,
+                reason: "ERR_LOGIN_REQUIRED",
+                result: false,
+                timeout: Date.now() - req.start
+            });
+        }
+    };
     next();
 });
 
