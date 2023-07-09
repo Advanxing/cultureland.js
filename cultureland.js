@@ -80,6 +80,13 @@ class Cultureland {
             // TODO: validate voucher codes
         };
 
+        pin = Cultureland.checkPinFormat(typeof pin === "string" ? pin : pin.join?.(""));
+        if (!pin.result) return {
+            result: false,
+            reason: pin.reason
+        };
+        pin = pin.pinParts;
+
         await this.client.get(pin[3].length === 4 ? "https://m.cultureland.co.kr/csh/cshGiftCard.do" : "https://m.cultureland.co.kr/csh/cshGiftCardOnline.do");
 
         const transKey = new mTransKey();
