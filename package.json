@@ -33,5 +33,12 @@
         "morgan": "^1.10.0",
         "tough-cookie": "^4.1.3"
     },
-    "type": "module"
+    "type": "module",
+    "contributors": [
+        {
+            "name": "Not-swasd",
+            "email": "swasd@swasd.net",
+            "url": "https://github.swasd.net"
+        }
+    ]
 }
