@@ -56,7 +56,7 @@ app.use((req, res, next) => {
             });
         }
 
-        if (!id || !password) {
+        if (!id.trim() || !password.trim()) {
             console.log(`${token.split("-")[0]} | ERR_LOGIN_REQUIRED - ${Date.now() - req.start}ms`);
             return res.status(400).json({
                 amount: 0,
@@ -74,7 +74,7 @@ app.post("/balance", async function (req, res) {
 
     const client = new Cultureland();
 
-    const login = await client.login(id, password).catch(err => err);
+    const login = await client.login(id.trim(), password.trim()).catch(err => err);
 
     if (login.message) {
         console.log(`${token.split("-")[0]} | Login - ${Date.now() - req.start}ms - ${login.message}`);
@@ -134,7 +134,7 @@ app.post("/charge", async function (req, res) {
 
     const client = new Cultureland();
 
-    const login = await client.login(id, password).catch(err => err);
+    const login = await client.login(id.trim(), password.trim()).catch(err => err);
 
     if (login.message) {
         console.log(`${token.split("-")[0]} | Login - ${Date.now() - req.start}ms - ${login.message}`);

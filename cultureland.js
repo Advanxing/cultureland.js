@@ -187,7 +187,7 @@ class Cultureland {
     };
 
     async login(id, password) {
-        this.jar.setCookieSync("KeepLoginConfig=" + crypto.randomBytes(4).toString("hex"), "https://m.cultureland.co.kr");
+        this.jar.setCookieSync("KeepLoginConfig=sd_" + crypto.randomBytes(4).toString("hex"), "https://m.cultureland.co.kr");
         const transKey = new mTransKey();
         await transKey.getServletData(this.jar);
         await transKey.getKeyData(this.jar);
