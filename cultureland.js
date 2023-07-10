@@ -43,8 +43,8 @@ class Cultureland {
             "seedKey": transKey.crypto.encSessionKey,
             "initTime": transKey.initTime,
             "keyIndex_input-14": keypad.keyIndex,
-            "keyboardType_input-14": "numberMobile",
-            "fieldType_input-14": "tel",
+            "keyboardType_input-14": keypad.keyboardType + "Mobile",
+            "fieldType_input-14": keypad.fieldType,
             "transkeyUuid": transKey.crypto.transkeyUuid,
             "transkey_input-14": encryptedPin,
             "transkey_HM_input-14": transKey.crypto.hmacDigest(encryptedPin)
@@ -209,8 +209,8 @@ class Cultureland {
             seedKey: transKey.crypto.encSessionKey,
             initTime: transKey.initTime,
             keyIndex_passwd: keypad.keyIndex,
-            keyboardType_passwd: "qwertyMobile",
-            fieldType_passwd: "password",
+            keyboardType_passwd: keypad.keyboardType + "Mobile",
+            fieldType_passwd: keypad.fieldType,
             transkeyUuid: transKey.crypto.transkeyUuid,
             transkey_passwd: encryptedPassword,
             transkey_HM_passwd: transKey.crypto.hmacDigest(encryptedPassword)

@@ -112,9 +112,7 @@ class mTransKey {
             responseType: "arraybuffer"
         }, options))
             .then(res => Buffer.from(res.data, "binary"));
-
-        if (keyboardType === "qwerty") return new KeyPad(this.qwerty, keyboardType, keyImage, this.crypto.sessionKey, keyIndex);
-        else return new KeyPad(this.number, keyboardType, keyImage, this.crypto.sessionKey, keyIndex);
+        return new KeyPad(keyboardType === "qwerty" ? this.qwerty : this.number, keyboardType, keyImage, this.crypto.sessionKey, keyIndex, fieldType);
     }
 }
 

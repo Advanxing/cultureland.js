@@ -19,12 +19,13 @@ const numberKeyHashes = [
 ];
 
 class KeyPad {
-    constructor(keys, keyboardType, keyImage, sessionKey, keyIndex) {
+    constructor(keys, keyboardType, keyImage, sessionKey, keyIndex, fieldType) {
         this.keys = keys;
         this.keyboardType = keyboardType;
         this.keyImage = keyImage;
         this.sessionKey = sessionKey;
         this.keyIndex = keyIndex;
+        this.fieldType = fieldType;
     }
 
     encryptPassword(pw, skipData) {
