@@ -7,3 +7,4 @@ I am not responsible for any loss or damage caused by the project or this reposi
 
 ## Donate
 https://toss.me/swasd0
+https://www.buymeacoffee.com/swasd
