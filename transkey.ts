@@ -2,8 +2,8 @@ import axios from "axios";
 import { HttpCookieAgent, HttpsCookieAgent } from "http-cookie-agent/http";
 import qs from "querystring";
 import { CookieJar } from "tough-cookie";
-import Crypto from "./crypto.js";
-import KeyPad from "./keypad.js";
+import Crypto from "./crypto.ts";
+import KeyPad from "./keypad.ts";
 
 class mTransKey {
     public crypto: Crypto;

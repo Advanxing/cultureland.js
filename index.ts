@@ -1,7 +1,9 @@
 import cors from "cors";
 import express from "express";
 import morgan from "morgan";
-import Cultureland from "./cultureland.js";
+import Cultureland from "./cultureland.ts";
+
+
 const app = express();
 
 declare module "express-serve-static-core" {
@@ -168,9 +170,9 @@ app.post("/charge", async function (req, res) {
     if (charge.message) {
         console.log(`${token.split("-")[0]} | ChargeMessage - ${Date.now() - req.start}ms - ${charge.message}`);
         return res.status(500).json({
-            success: false,
+            success: charge.success,
             message: charge.message,
-            amount: 0,
+            amount: charge.amount,
             timeout: Date.now() - req.start
         });
     };

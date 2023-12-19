@@ -3,9 +3,10 @@ import crypto from "crypto";
 import { HttpCookieAgent, HttpsCookieAgent } from "http-cookie-agent/http";
 import qs from "querystring";
 import { CookieJar } from "tough-cookie";
-import mTransKey from "./transkey.js";
+import mTransKey from "./transkey.ts";
+import cheerio from 'cheerio';
 
-class Cultureland {
+export default class Cultureland {
     public jar: CookieJar;
     public client: AxiosInstance;
     public constructor() {
@@ -35,29 +36,6 @@ class Cultureland {
         const keypad = await transKey.createKeypad(this.jar, "number", "input-14", "culturelandInput", "tel");
         const skipData = await keypad.getSkipData();
         const encryptedPin = keypad.encryptPassword(pin[3], skipData);
-
-        /*
-        const voucherData = await this.client.post("https://m.cultureland.co.kr/vchr/getVoucherCheckMobileUsed.json", qs.stringify({
-            "culturelandNo": pinFormatResult.pinParts[0] + pinFormatResult.pinParts[1] + pinFormatResult.pinParts[2],
-            "culturelandInput": pinFormatResult.pinParts[0],
-            "culturelandInput": pinFormatResult.pinParts[1],
-            "culturelandInput": pinFormatResult.pinParts[2],
-            "culturelandInput": "*".repeat(pinFormatResult.pinParts[3].length),
-            "seedKey": transKey.crypto.encSessionKey,
-            "initTime": transKey.initTime,
-            "keyIndex_input-14": keypad.keyIndex,
-            "keyboardType_input-14": keypad.keyboardType + "Mobile",
-            "fieldType_input-14": keypad.fieldType,
-            "transkeyUuid": transKey.crypto.transkeyUuid,
-            "transkey_input-14": encryptedPin,
-            "transkey_HM_input-14": transKey.crypto.hmacDigest(encryptedPin)
-        })).then(res => res.data);
-        console.log(voucherData);
-        return {
-            success: true,
-            data: voucherData
-        };
-        */
     };
 
     public async getBalance() {
@@ -125,10 +103,12 @@ class Cultureland {
         const amount = Number(chargeData[4].split("</td>")[0].replace(/\D/g, ""));
         const chargeData2 = chargeResult.split('class="result">')[1].split("</div>")[0];
         const [normalAmount, walletAmount] = chargeData2.split("dlWalletChargeAmt").map((x: string) => Number(x.replace(/\D/g, "")));
+        const $ = cheerio.load(chargeResult);
+        const cashChargeAmtValue = $('#cashChargeAmt').val()
         return {
             success: true,
-            message,
-            amount: Math.min(Math.max(normalAmount, walletAmount), amount)
+            message: message,
+            amount: cashChargeAmtValue
         };
     };
 
@@ -285,5 +265,3 @@ class Cultureland {
         };
     };
 }
-
-export default Cultureland;
