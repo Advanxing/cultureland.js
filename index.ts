@@ -81,47 +81,35 @@ app.post("/balance", async function (req, res) {
 
     const client = new Cultureland();
 
-    const login = await client.login(id.trim(), password.trim()).catch(err => err);
-
-    if (login.message) {
-        console.log(`${token.split("-")[0]} | Login - ${Date.now() - req.start}ms - ${login.message}`);
-        return res.status(500).json({
+    const loginResult = await client.login(id.trim(), password.trim());
+    if (!loginResult.success) {
+        console.log(`${token.split("-")[0]} | LoginFailed - ${Date.now() - req.start}ms - ${JSON.stringify(loginResult)}`);
+        return res.status(400).json({
+            success: false,
+            message: loginResult.message,
             amount: 0,
-            message: login.message,
+            timeout: Date.now() - req.start
+        });
+    };
+
+    const balanceResult = await client.getBalance().catch(err => err);
+    if (!balanceResult.success) {
+        console.log(`${token.split("-")[0]} | BalanceFailed - ${Date.now() - req.start}ms - ${balanceResult.message}`);
+        return res.status(400).json({
+            amount: 0,
+            message: balanceResult.message,
             success: false,
             timeout: Date.now() - req.start
         });
     };
 
-    if (!login) {
-        console.log(`${token.split("-")[0]} | LoginResult - ${Date.now() - req.start}ms - ${typeof login === "object" ? JSON.stringify(login) : login.toString()}`);
-        return res.status(500).json({
-            amount: 0,
-            message: typeof login === "object" ? JSON.stringify(login) : login.toString(),
-            success: false,
-            timeout: Date.now() - req.start
-        });
-    };
-
-    const balance = await client.getBalance().catch(err => err);
-
-    if (balance.message) {
-        console.log(`${token.split("-")[0]} | BalanceMessage - ${Date.now() - req.start}ms - ${balance.message}`);
-        return res.status(500).json({
-            amount: 0,
-            message: balance.message,
-            success: false,
-            timeout: Date.now() - req.start
-        });
-    };
-
-    console.log(`${token.split("-")[0]} | BalanceSuccess - ${Date.now() - req.start}ms - ${balance.myCash}원 - ${JSON.stringify(balance)}`);
+    console.log(`${token.split("-")[0]} | BalanceSuccess - ${Date.now() - req.start}ms - ${balanceResult.data.myCash}원 - ${JSON.stringify(balanceResult.data)}`);
     return res.status(200).json({
-        ...balance,
-        amount: balance.myCash,
+        amount: balanceResult.myCash,
         message: "OK",
         success: true,
-        timeout: Date.now() - req.start
+        timeout: Date.now() - req.start,
+        data: balanceResult.data
     });
 });
 
@@ -141,55 +129,34 @@ app.post("/charge", async function (req, res) {
 
     const client = new Cultureland();
 
-    const login = await client.login(id.trim(), password.trim()).catch(err => err);
-
-    if (login.message) {
-        console.log(`${token.split("-")[0]} | Login - ${Date.now() - req.start}ms - ${login.message}`);
-        return res.status(500).json({
+    const loginResult = await client.login(id.trim(), password.trim());
+    if (!loginResult.success) {
+        console.log(`${token.split("-")[0]} | LoginFailed - ${Date.now() - req.start}ms - ${JSON.stringify(loginResult)}`);
+        return res.status(400).json({
             success: false,
-            message: login.message,
+            message: loginResult.message,
             amount: 0,
             timeout: Date.now() - req.start
         });
     };
 
-    if (!login) {
-        console.log(`${token.split("-")[0]} | LoginResult - ${Date.now() - req.start}ms - ${typeof login === "object" ? JSON.stringify(login) : login.toString()}`);
-        return res.status(500).json({
+    const chargeResult = await client.charge(pinResult.pinParts, false);
+
+    if (!chargeResult.success) {
+        console.log(`${token.split("-")[0]} | ChargeFailed - ${Date.now() - req.start}ms - ${JSON.stringify(chargeResult)}`);
+        return res.status(400).json({
             success: false,
-            message: typeof login === "object" ? JSON.stringify(login) : login.toString(),
+            message: chargeResult.message,
             amount: 0,
             timeout: Date.now() - req.start
         });
     };
 
-    const charge = await client.charge(pinResult.pinParts, false).catch(err => err);
-
-    if (charge.message) {
-        console.log(`${token.split("-")[0]} | ChargeMessage - ${Date.now() - req.start}ms - ${charge.message}`);
-        return res.status(500).json({
-            success: false,
-            message: charge.message,
-            amount: 0,
-            timeout: Date.now() - req.start
-        });
-    };
-
-    if (!charge.reason) {
-        console.log(`${token.split("-")[0]} | ChargeReason - ${Date.now() - req.start}ms - ${typeof charge === "object" ? JSON.stringify(charge) : charge.toString()}`);
-        return res.status(500).json({
-            success: false,
-            message: typeof charge === "object" ? JSON.stringify(charge) : charge.toString(),
-            amount: 0,
-            timeout: Date.now() - req.start
-        });
-    };
-
-    console.log(`${token.split("-")[0]} | ChargeSuccess - ${Date.now() - req.start}ms - ${charge.amount}원 - ${charge.reason.replace("<b>", "").replace("</b>", "")}`);
+    console.log(`${token.split("-")[0]} | ChargeSuccess - ${Date.now() - req.start}ms - ${chargeResult.amount}원 - ${chargeResult.message.replace("<b>", "").replace("</b>", "")}`);
     return res.status(200).json({
-        success: !!charge.amount,
-        message: charge.reason.replace("<b>", "").replace("</b>", ""),
-        amount: charge.amount,
+        success: !!chargeResult.amount,
+        message: chargeResult.message.replace("<b>", "").replace("</b>", ""),
+        amount: chargeResult.amount,
         timeout: Date.now() - req.start
     });
 });

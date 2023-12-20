@@ -60,75 +60,113 @@ class Cultureland {
         */
     };
 
-    public async getBalance() {
-        if (!await this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
+    public async getBalance(): Promise<{
+        success: true,
+        data: {
+            memberKind: string,
+            resultCode: 0,
+            resultMessage: "성공",
+            blnWaitCash: 0,
+            walletPinYN: boolean,
+            myCash: number,
+            blnAmt: number,
+            bnkAmt: number,
+            limitCash: number
+            remainCash: number,
+            safeDelYn: boolean,
+            walletYN: boolean,
+            casChargeYN: boolean,
+        }
+    } | {
+        success: false,
+        message: string
+    }> {
+        try {
+            if (!await this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
 
-        const balance = await this.client.post("https://m.cultureland.co.kr/tgl/getBalance.json").then(res => res.data);
+            const balance = await this.client.post("https://m.cultureland.co.kr/tgl/getBalance.json").then(res => res.data);
 
-        if (balance.resultMessage !== "성공") throw new Error("ERR_BALANCE_FAILED");
+            if (balance.resultMessage !== "성공") throw new Error("ERR_BALANCE_FAILED");
 
-        for (const key in balance) {
-            if (!isNaN(balance[key])) balance[key] = Number(balance[key]);
+            for (const key in balance) {
+                if (!isNaN(balance[key])) balance[key] = Number(balance[key]);
+                if (balance[key] === "Y" || balance[key] === "N") balance[key] = balance[key] === "Y";
+            };
+
+            return {
+                success: true,
+                data: balance
+            };
+        } catch (e) {
+            return {
+                success: false,
+                message: (e as Error).message
+            };
         };
-
-        return balance;
     };
 
     public async charge(_pin: string | string[], checkPin = true) {
-        // if (!await this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
+        try {
+            if (!await this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
 
-        if (checkPin) {
-            // const voucherData = await this.checkPin(pin);
-            // console.log(voucherData);
+            if (checkPin) {
+                // const voucherData = await this.checkPin(pin);
+                // console.log(voucherData);
 
-            // TODO: validate voucher codes
-        };
+                // TODO: validate voucher codes
+            };
 
-        const pin = Cultureland.checkPinFormat(typeof _pin === "string" ? _pin : _pin.join?.(""));
-        if (!pin.success) return {
-            success: false,
-            message: pin.message
-        };
+            const pin = Cultureland.checkPinFormat(typeof _pin === "string" ? _pin : _pin.join?.(""));
+            if (!pin.success) return {
+                success: false,
+                message: pin.message
+            };
 
-        await this.client.get(pin.pinParts[3].length === 4 ? "https://m.cultureland.co.kr/csh/cshGiftCard.do" : "https://m.cultureland.co.kr/csh/cshGiftCardOnline.do");
+            await this.client.get(pin.pinParts[3].length === 4 ? "https://m.cultureland.co.kr/csh/cshGiftCard.do" : "https://m.cultureland.co.kr/csh/cshGiftCardOnline.do");
 
-        const transKey = new mTransKey();
-        await transKey.getServletData(this.jar);
-        await transKey.getKeyData(this.jar);
+            const transKey = new mTransKey();
+            await transKey.getServletData(this.jar);
+            await transKey.getKeyData(this.jar);
 
-        const keypad = await transKey.createKeypad(this.jar, "number", "txtScr14", "scr14", "password");
-        const skipData = await keypad.getSkipData();
-        const encryptedPin = keypad.encryptPassword(pin.pinParts[3], skipData);
+            const keypad = await transKey.createKeypad(this.jar, "number", "txtScr14", "scr14", "password");
+            const skipData = await keypad.getSkipData();
+            const encryptedPin = keypad.encryptPassword(pin.pinParts[3], skipData);
 
-        const requestBody = qs.stringify({
-            versionCode: "",
-            scr11: pin.pinParts[0],
-            scr12: pin.pinParts[1],
-            scr13: pin.pinParts[2],
-            scr14: "*".repeat(pin.pinParts[3].length),
-            seedKey: transKey.crypto.encSessionKey,
-            initTime: transKey.initTime,
-            keyIndex_txtScr14: keypad.keyIndex,
-            keyboardType_txtScr14: "numberMobile",
-            fieldType_txtScr14: "password",
-            transkeyUuid: transKey.crypto.transkeyUuid,
-            transkey_txtScr14: encryptedPin,
-            transkey_HM_txtScr14: transKey.crypto.hmacDigest(encryptedPin)
-        });
-        const chargeRequest = await this.client.post(pin.pinParts[3].length === 4 ? "https://m.cultureland.co.kr/csh/cshGiftCardProcess.do" : "https://m.cultureland.co.kr/csh/cshGiftCardOnlineProcess.do", requestBody, {
-            maxRedirects: 0,
-            validateStatus: status => status === 302
-        }).catch(() => { throw new Error("ERR_CHARGE_FAILED") });
-        const chargeResult = await this.client.get("https://m.cultureland.co.kr/" + chargeRequest.headers["location"]).then(res => res.data);
-        const chargeData = chargeResult.split("<tbody>")[1].split("<td>");
-        const message = chargeData[3].split("</td>")[0].replace(/<\/?[\d\w\s='#]+>/g, "");
-        const amount = Number(chargeData[4].split("</td>")[0].replace(/\D/g, ""));
-        const chargeData2 = chargeResult.split('class="result">')[1].split("</div>")[0];
-        const [normalAmount, walletAmount] = chargeData2.split("dlWalletChargeAmt").map((x: string) => Number(x.replace(/\D/g, "")));
-        return {
-            success: true,
-            message,
-            amount: Math.min(Math.max(normalAmount, walletAmount), amount)
+            const requestBody = qs.stringify({
+                versionCode: "",
+                scr11: pin.pinParts[0],
+                scr12: pin.pinParts[1],
+                scr13: pin.pinParts[2],
+                scr14: "*".repeat(pin.pinParts[3].length),
+                seedKey: transKey.crypto.encSessionKey,
+                initTime: transKey.initTime,
+                keyIndex_txtScr14: keypad.keyIndex,
+                keyboardType_txtScr14: "numberMobile",
+                fieldType_txtScr14: "password",
+                transkeyUuid: transKey.crypto.transkeyUuid,
+                transkey_txtScr14: encryptedPin,
+                transkey_HM_txtScr14: transKey.crypto.hmacDigest(encryptedPin)
+            });
+            const chargeRequest = await this.client.post(pin.pinParts[3].length === 4 ? "https://m.cultureland.co.kr/csh/cshGiftCardProcess.do" : "https://m.cultureland.co.kr/csh/cshGiftCardOnlineProcess.do", requestBody, {
+                maxRedirects: 0,
+                validateStatus: status => status === 302
+            }).catch(() => { throw new Error("ERR_CHARGE_FAILED") });
+            const chargeResult = await this.client.get("https://m.cultureland.co.kr/" + chargeRequest.headers["location"]).then(res => res.data);
+            const chargeData = chargeResult.split("<tbody>")[1].split("<td>");
+            const message = chargeData[3].split("</td>")[0].replace(/<\/?[\d\w\s='#]+>/g, "");
+            const amount = Number(chargeData[4].split("</td>")[0].replace(/\D/g, ""));
+            const chargeData2 = chargeResult.split('class="result">')[1].split("</div>")[0];
+            const [normalAmount, walletAmount] = chargeData2.split("dlWalletChargeAmt").map((x: string) => Number(x.replace(/\D/g, "")));
+            return {
+                success: true,
+                message,
+                amount: Math.min(Math.max(normalAmount, walletAmount), amount)
+            };
+        } catch (e) {
+            return {
+                success: false,
+                message: (e as Error).message
+            };
         };
     };
 
@@ -194,43 +232,53 @@ class Cultureland {
     };
 
     public async login(id: string, password: string) {
-        this.jar.setCookieSync("KeepLoginConfig=sd_" + crypto.randomBytes(4).toString("hex"), "https://m.cultureland.co.kr");
-        const transKey = new mTransKey();
-        await transKey.getServletData(this.jar);
-        await transKey.getKeyData(this.jar);
+        try {
+            this.jar.setCookieSync("KeepLoginConfig=sd_" + crypto.randomBytes(4).toString("hex"), "https://m.cultureland.co.kr");
+            const transKey = new mTransKey();
+            await transKey.getServletData(this.jar);
+            await transKey.getKeyData(this.jar);
 
-        const keypad = await transKey.createKeypad(this.jar, "qwerty", "passwd", "passwd", "password");
-        const skipData = await keypad.getSkipData();
-        const encryptedPassword = keypad.encryptPassword(password, skipData);
-        const requestBody = qs.stringify({
-            agentUrl: "",
-            returnUrl: "",
-            keepLoginInfo: "",
-            phoneForiOS: "",
-            hidWebType: "other",
-            bioCheckResult: "",
-            browserId: "", // /assets/js/egovframework/com/cland/was/mmb/loginMain.js?version=1.0 LINE 19
-            userId: id,
-            passwd: "*".repeat(password.length),
-            keepLogin: "Y",
-            seedKey: transKey.crypto.encSessionKey,
-            initTime: transKey.initTime,
-            keyIndex_passwd: keypad.keyIndex,
-            keyboardType_passwd: keypad.keyboardType + "Mobile",
-            fieldType_passwd: keypad.fieldType,
-            transkeyUuid: transKey.crypto.transkeyUuid,
-            transkey_passwd: encryptedPassword,
-            transkey_HM_passwd: transKey.crypto.hmacDigest(encryptedPassword)
-        });
-        const loginRequest = await this.client.post("https://m.cultureland.co.kr/mmb/loginProcess.do", requestBody, {
-            headers: {
-                "Referer": "https://m.cultureland.co.kr/mmb/loginMain.do"
-            },
-            maxRedirects: 0,
-            validateStatus: status => status === 302
-        }).catch(() => { throw new Error("ERR_LOGIN_FAILED"); });
-        if (loginRequest.headers["location"] === "https://m.cultureland.co.kr/cmp/authConfirm.do") throw new Error("ERR_LOGIN_RESTRICTED");
-        return true;
+            const keypad = await transKey.createKeypad(this.jar, "qwerty", "passwd", "passwd", "password");
+            const skipData = await keypad.getSkipData();
+            const encryptedPassword = keypad.encryptPassword(password, skipData);
+            const requestBody = qs.stringify({
+                agentUrl: "",
+                returnUrl: "",
+                keepLoginInfo: "",
+                phoneForiOS: "",
+                hidWebType: "other",
+                bioCheckResult: "",
+                browserId: "", // /assets/js/egovframework/com/cland/was/mmb/loginMain.js?version=1.0 LINE 19
+                userId: id,
+                passwd: "*".repeat(password.length),
+                keepLogin: "Y",
+                seedKey: transKey.crypto.encSessionKey,
+                initTime: transKey.initTime,
+                keyIndex_passwd: keypad.keyIndex,
+                keyboardType_passwd: keypad.keyboardType + "Mobile",
+                fieldType_passwd: keypad.fieldType,
+                transkeyUuid: transKey.crypto.transkeyUuid,
+                transkey_passwd: encryptedPassword,
+                transkey_HM_passwd: transKey.crypto.hmacDigest(encryptedPassword)
+            });
+            const loginRequest = await this.client.post("https://m.cultureland.co.kr/mmb/loginProcess.do", requestBody, {
+                headers: {
+                    "Referer": "https://m.cultureland.co.kr/mmb/loginMain.do"
+                },
+                maxRedirects: 0,
+                validateStatus: status => status === 302
+            }).catch(() => { throw new Error("ERR_LOGIN_FAILED"); });
+            if (loginRequest.headers["location"] === "https://m.cultureland.co.kr/cmp/authConfirm.do") throw new Error("ERR_LOGIN_RESTRICTED");
+            return {
+                success: true,
+                message: "Login success."
+            };
+        } catch (e) {
+            return {
+                success: false,
+                message: (e as Error).message
+            }
+        };
     };
 
     public static checkPinFormat(pin: string): { success: true, message: string, pinParts: [string, string, string, string] } | { success: false, message: string } {
