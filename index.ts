@@ -161,6 +161,71 @@ app.post("/charge", async function (req, res) {
     });
 });
 
+app.post("/gift", async function (req, res) {
+  const { id, password, amount, token } = req.body;
+
+  if (typeof amount !== "number" || amount < 1000 || amount > 50000) {
+    console.log(
+      `${token.split("-")[0]} | GiftFailed - ${
+        Date.now() - req.start
+      }ms - ${amount}`
+    );
+    return res.status(400).json({
+      success: false,
+      message: "ERR_INVALID_AMOUNT",
+      amount: 0,
+      timeout: Date.now() - req.start,
+    });
+  }
+
+  const client = new Cultureland();
+
+  const loginResult = await client.login(id.trim(), password.trim());
+  if (!loginResult.success) {
+    console.log(
+      `${token.split("-")[0]} | LoginFailed - ${
+        Date.now() - req.start
+      }ms - ${JSON.stringify(loginResult)}`
+    );
+    return res.status(400).json({
+      success: false,
+      message: loginResult.message,
+      amount: 0,
+      timeout: Date.now() - req.start,
+    });
+  }
+
+  const giftResult = await client.gift(amount);
+
+  if (!giftResult.success) {
+    console.log(
+      `${token.split("-")[0]} | GiftFailed - ${
+        Date.now() - req.start
+      }ms - ${JSON.stringify(giftResult)}`
+    );
+    return res.status(400).json({
+      success: false,
+      message: giftResult.message,
+      amount: 0,
+      timeout: Date.now() - req.start,
+    });
+  }
+  
+  console.log(
+    `${token.split("-")[0]} | GiftSuccess - ${
+      Date.now() - req.start
+    }ms - ${giftResult.amount}원 - ${giftResult.message}`
+  );
+
+  return res.status(200).json({
+    success: giftResult.success,
+    message: giftResult.message,
+    amount: giftResult.amount,
+    timeout: Date.now() - req.start,
+    pin: giftResult.pin,
+  });
+});
+
 app.use(function (error: Error, req: express.Request, res: express.Response, _next: express.NextFunction) {
     console.error("Web Server ERROR!", error);
     res.status(500).json({ success: false, message: "Internal Server Error. Please try again later.", amount: 0, timeout: Date.now() - req.start });
