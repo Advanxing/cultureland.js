@@ -227,12 +227,12 @@ class Cultureland {
     };
 
     public async isLogin() {
-        const isLogin = await this.client.post("https://m.cultureland.co.kr/mmb/isLogin.json").then(res => res.data);
+        const isLogin = await this.client.post("https://m.cultureland.co.kr/mmb/isLogin.json").then(res => res.data === "true").catch(() => false);
         return isLogin;
     };
 
     public async getUserInfo() {
-        if (!this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
+        if (!(await this.isLogin())) throw new Error("ERR_LOGIN_REQUIRED");
 
         const userInfo = await this.client.post("https://m.cultureland.co.kr/tgl/flagSecCash.json").then(res => res.data);
 
