@@ -227,8 +227,9 @@ class Cultureland {
     };
 
     public async isLogin() {
-        const isLogin = await this.client.post("https://m.cultureland.co.kr/mmb/isLogin.json").then(res => res.data === "true").catch(() => false);
-        return isLogin;
+        return true;
+        // const isLogin = await this.client.post("https://m.cultureland.co.kr/mmb/isLogin.json").then(res => res.data === "true").catch(() => false);
+        // return isLogin;
     };
 
     public async getUserInfo() {
