@@ -1,4 +1,4 @@
-﻿import axios, { AxiosInstance } from "axios";
+﻿﻿import axios, { AxiosInstance } from "axios";
 import crypto from "crypto";
 import { HttpCookieAgent, HttpsCookieAgent } from "http-cookie-agent/http";
 import qs from "querystring";
@@ -170,43 +170,61 @@ class Cultureland {
         };
     };
 
-    /*
-    public async gift(amount, quantity, phone) {
-        if (!await this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
+    public async gift(amount: number) {
+        try {
+            if (!await this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
 
-        await this.client.get("https://m.cultureland.co.kr/gft/gftPhoneApp.do");
+            const userInfo = await this.getUserInfo();
 
-        await this.client.post("https://m.cultureland.co.kr/gft/gftPhoneCashProc.do", qs.stringify({
-            revEmail: "",
-            sendType: "S",
-            userKey: user_key,
-            limitGiftBank: "N",
-            giftCategory: "M",
-            amount,
-            quantity,
-            revPhone: phone,
-            sendTitl: "",
-            paymentType: "cash"
-        }), {
-            validateStatus: status => status === 302
-        }).catch(() => { throw new Error("ERR_GIFT_FAILED"); });
+            await this.client.get("https://m.cultureland.co.kr/gft/gftPhoneApp.do");
 
-        const giftResult = await this.client.get("https://m.cultureland.co.kr/gft/gftPhoneCfrm.do").then(res => res.data);
+            const giftResult = await this.client.post("https://m.cultureland.co.kr/gft/gftPhoneCashProc.do", qs.stringify({
+                revEmail: "",
+                sendType: "S",
+                userKey: userInfo.userKey,
+                limitGiftBank: "N",
+                giftCategory: "M",
+                amount,
+                quantity: 1,
+                revPhone: userInfo.Phone,
+                sendTitl: "",
+                paymentType: "cash"
+            }), {
+                validateStatus: status => status === 200
+            }).catch(() => { throw new Error("ERR_GIFT_FAILED"); })
+            .then(res => res.data);
 
-        if (giftResult.includes('<p>선물(구매)하신 <strong class="point">모바일문화상품권</strong>을<br /><strong class="point">요청하신 정보로 전송</strong>하였습니다.</p>')) {
-            const giftData = giftResult.split("- 상품권 바로 충전 : https://m.cultureland.co.kr/csh/dc.do?code=")[1].split("&lt;br&gt;");
+            if (giftResult.includes('<strong> 컬쳐랜드상품권(모바일문화상품권) 선물(구매)가<br />완료되었습니다.</strong>')) {
+                const giftData = await this.client
+                .get(
+                    giftResult.split('name="barcodeImage"')[1]
+                    .split('value="')[1]
+                    .split('"')[0]
+                )
+                .then((res) => res.data);
+        
+                const pinCode = giftData
+                .split("<span>바코드번호</span>")[1]
+                .split("</span>")[0]
+                .split(">")[1]
+                .replace(/ /g, "");
 
+                return {
+                    success: true,
+                    message: "선물(구매)하신 모바일문화상품권을 본인번호로 전송하였습니다",
+                    amount,
+                    pin: pinCode
+                };
+            }
+
+            throw new Error("ERR_GIFT_FAILED");
+        } catch(e) {
             return {
-                success: true,
-                message: "선물(구매)하신 모바일문화상품권을 요청하신 정보로 전송하였습니다",
-                code: giftData[0],
-                pin: giftData[8].replace("- 바코드번호 : ", "")
+                success: false,
+                message: (e as Error).message
             };
         }
-
-        throw new Error("ERR_GIFT_FAILED");
     };
-    */
 
     public async isLogin() {
         const isLogin = await this.client.post("https://m.cultureland.co.kr/mmb/isLogin.json").then(res => res.data === "true").catch(() => false);
