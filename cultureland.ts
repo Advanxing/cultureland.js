@@ -21,7 +21,7 @@ class Cultureland {
     };
 
     public async checkPin(pin: string) {
-        if (!await this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
+        if (!(await this.isLogin())) throw new Error("ERR_LOGIN_REQUIRED");
         const pinFormatResult = Cultureland.checkPinFormat(pin);
         if (!pinFormatResult.success) return {
             success: false,
@@ -82,7 +82,7 @@ class Cultureland {
         message: string
     }> {
         try {
-            if (!await this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
+            if (!(await this.isLogin())) throw new Error("ERR_LOGIN_REQUIRED");
 
             const balance = await this.client.post("https://m.cultureland.co.kr/tgl/getBalance.json").then(res => res.data);
 
@@ -107,7 +107,7 @@ class Cultureland {
 
     public async charge(_pin: string | string[], checkPin = true) {
         try {
-            if (!await this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
+            if (!(await this.isLogin())) throw new Error("ERR_LOGIN_REQUIRED");
 
             if (checkPin) {
                 // const voucherData = await this.checkPin(pin);
@@ -172,7 +172,7 @@ class Cultureland {
 
     public async gift(amount: number) {
         try {
-            if (!await this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
+            if (!(await this.isLogin())) throw new Error("ERR_LOGIN_REQUIRED");
 
             const userInfo = await this.getUserInfo();
 
@@ -192,22 +192,22 @@ class Cultureland {
             }), {
                 validateStatus: status => status === 200
             }).catch(() => { throw new Error("ERR_GIFT_FAILED"); })
-            .then(res => res.data);
+                .then(res => res.data);
 
             if (giftResult.includes('<strong> 컬쳐랜드상품권(모바일문화상품권) 선물(구매)가<br />완료되었습니다.</strong>')) {
                 const giftData = await this.client
-                .get(
-                    giftResult.split('name="barcodeImage"')[1]
-                    .split('value="')[1]
-                    .split('"')[0]
-                )
-                .then((res) => res.data);
-        
+                    .get(
+                        giftResult.split('name="barcodeImage"')[1]
+                            .split('value="')[1]
+                            .split('"')[0]
+                    )
+                    .then((res) => res.data);
+
                 const pinCode = giftData
-                .split("<span>바코드번호</span>")[1]
-                .split("</span>")[0]
-                .split(">")[1]
-                .replace(/ /g, "");
+                    .split("<span>바코드번호</span>")[1]
+                    .split("</span>")[0]
+                    .split(">")[1]
+                    .replace(/ /g, "");
 
                 return {
                     success: true,
@@ -218,7 +218,7 @@ class Cultureland {
             }
 
             throw new Error("ERR_GIFT_FAILED");
-        } catch(e) {
+        } catch (e) {
             return {
                 success: false,
                 message: (e as Error).message
