@@ -1,9 +1,37 @@
-﻿﻿import axios, { AxiosInstance } from "axios";
+﻿import axios, { AxiosInstance } from "axios";
 import crypto from "crypto";
 import { HttpCookieAgent, HttpsCookieAgent } from "http-cookie-agent/http";
 import qs from "querystring";
 import { CookieJar } from "tough-cookie";
 import mTransKey from "./transkey.js";
+
+interface CulturelandUser {
+    Del_Yn: boolean,
+    callUrl: string,
+    certVal: string,
+    backUrl: string,
+    authDttm: string,
+    resultCode: string,
+    Status_M: string,
+    Phone: string,
+    Status_Y: string,
+    Status_W: string,
+    Status: string,
+    SafeLevel: number,
+    Status_D: string,
+    CashPwd: boolean,
+    RegDate: string,
+    resultMessage: string,
+    userId: string,
+    userKey: number,
+    Proc_Date: string,
+    size: number,
+    succUrl: string,
+    userIp: string,
+    Mobile_Yn: string,
+    idx: number,
+    category: string
+};
 
 class Cultureland {
     public jar: CookieJar;
@@ -174,7 +202,9 @@ class Cultureland {
         try {
             if (!(await this.isLogin())) throw new Error("ERR_LOGIN_REQUIRED");
 
-            const userInfo = await this.getUserInfo();
+            const userInfoResult = await this.getUserInfo();
+            if (!userInfoResult.success) throw new Error(userInfoResult.message);
+            const userInfo = userInfoResult.data;
 
             await this.client.get("https://m.cultureland.co.kr/gft/gftPhoneApp.do");
 
@@ -227,27 +257,48 @@ class Cultureland {
     };
 
     public async isLogin() {
-        return true;
-        // const isLogin = await this.client.post("https://m.cultureland.co.kr/mmb/isLogin.json").then(res => res.data === "true").catch(() => false);
-        // return isLogin;
+        try {
+            const isLogin = await this.client.post("https://m.cultureland.co.kr/mmb/isLogin.json").then(res => res.data).catch(() => false);
+            return isLogin;
+        } catch {
+            return false;
+        };
     };
 
-    public async getUserInfo() {
-        if (!(await this.isLogin())) throw new Error("ERR_LOGIN_REQUIRED");
+    public async getUserInfo(): Promise<{
+        success: true,
+        data: CulturelandUser
+    } | {
+        success: false,
+        message: string
+    }> {
+        try {
+            if (!(await this.isLogin())) throw new Error("ERR_LOGIN_REQUIRED");
 
-        const userInfo = await this.client.post("https://m.cultureland.co.kr/tgl/flagSecCash.json").then(res => res.data);
+            const userInfo = await this.client.post("https://m.cultureland.co.kr/tgl/flagSecCash.json").then(res => res.data);
 
-        if (userInfo.resultMessage !== "성공") throw new Error("ERR_USERINFO_FAILED");
+            if (userInfo.resultMessage !== "성공") throw new Error("ERR_USERINFO_FAILED");
 
-        delete userInfo.user_id;
-        delete userInfo.user_key;
-        userInfo.CashPwd = userInfo.CashPwd !== "0";
-        userInfo.Del_Yn = userInfo.Del_Yn === "Y";
-        userInfo.idx = Number(userInfo.idx);
-        userInfo.SafeLevel = Number(userInfo.SafeLevel);
-        userInfo.userKey = Number(userInfo.userKey);
+            delete userInfo.user_id;
+            delete userInfo.user_key;
+            userInfo.CashPwd = userInfo.CashPwd !== "0";
+            userInfo.Del_Yn = userInfo.Del_Yn === "Y";
+            userInfo.idx = Number(userInfo.idx);
+            userInfo.SafeLevel = Number(userInfo.SafeLevel);
+            userInfo.userKey = Number(userInfo.userKey);
 
-        return userInfo;
+            console.log(userInfo);
+
+            return {
+                success: true,
+                data: userInfo
+            };
+        } catch (e) {
+            return {
+                success: false,
+                message: (e as Error).message
+            };
+        };
     };
 
     public async login(id: string, password: string) {
