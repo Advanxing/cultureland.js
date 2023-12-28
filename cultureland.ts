@@ -5,6 +5,34 @@ import qs from "querystring";
 import { CookieJar } from "tough-cookie";
 import mTransKey from "./transkey.js";
 
+interface CulturelandUser {
+    Del_Yn: boolean,
+    callUrl: string,
+    certVal: string,
+    backUrl: string,
+    authDttm: string,
+    resultCode: string,
+    Status_M: string,
+    Phone: string,
+    Status_Y: string,
+    Status_W: string,
+    Status: string,
+    SafeLevel: number,
+    Status_D: string,
+    CashPwd: boolean,
+    RegDate: string,
+    resultMessage: string,
+    userId: string,
+    userKey: number,
+    Proc_Date: string,
+    size: number,
+    succUrl: string,
+    userIp: string,
+    Mobile_Yn: string,
+    idx: number,
+    category: string
+};
+
 class Cultureland {
     public jar: CookieJar;
     public client: AxiosInstance;
@@ -21,7 +49,7 @@ class Cultureland {
     };
 
     public async checkPin(pin: string) {
-        if (!await this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
+        if (!(await this.isLogin())) throw new Error("ERR_LOGIN_REQUIRED");
         const pinFormatResult = Cultureland.checkPinFormat(pin);
         if (!pinFormatResult.success) return {
             success: false,
@@ -82,7 +110,7 @@ class Cultureland {
         message: string
     }> {
         try {
-            if (!await this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
+            if (!(await this.isLogin())) throw new Error("ERR_LOGIN_REQUIRED");
 
             const balance = await this.client.post("https://m.cultureland.co.kr/tgl/getBalance.json").then(res => res.data);
 
@@ -107,7 +135,7 @@ class Cultureland {
 
     public async charge(_pin: string | string[], checkPin = true) {
         try {
-            if (!await this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
+            if (!(await this.isLogin())) throw new Error("ERR_LOGIN_REQUIRED");
 
             if (checkPin) {
                 // const voucherData = await this.checkPin(pin);
@@ -170,65 +198,107 @@ class Cultureland {
         };
     };
 
-    /*
-    public async gift(amount, quantity, phone) {
-        if (!await this.isLogin()) throw new Error("ERR_LOGIN_REQUIRED");
+    public async gift(amount: number) {
+        try {
+            if (!(await this.isLogin())) throw new Error("ERR_LOGIN_REQUIRED");
 
-        await this.client.get("https://m.cultureland.co.kr/gft/gftPhoneApp.do");
+            const userInfoResult = await this.getUserInfo();
+            if (!userInfoResult.success) throw new Error(userInfoResult.message);
+            const userInfo = userInfoResult.data;
 
-        await this.client.post("https://m.cultureland.co.kr/gft/gftPhoneCashProc.do", qs.stringify({
-            revEmail: "",
-            sendType: "S",
-            userKey: user_key,
-            limitGiftBank: "N",
-            giftCategory: "M",
-            amount,
-            quantity,
-            revPhone: phone,
-            sendTitl: "",
-            paymentType: "cash"
-        }), {
-            validateStatus: status => status === 302
-        }).catch(() => { throw new Error("ERR_GIFT_FAILED"); });
+            await this.client.get("https://m.cultureland.co.kr/gft/gftPhoneApp.do");
 
-        const giftResult = await this.client.get("https://m.cultureland.co.kr/gft/gftPhoneCfrm.do").then(res => res.data);
+            const giftResult = await this.client.post("https://m.cultureland.co.kr/gft/gftPhoneCashProc.do", qs.stringify({
+                revEmail: "",
+                sendType: "S",
+                userKey: userInfo.userKey,
+                limitGiftBank: "N",
+                giftCategory: "M",
+                amount,
+                quantity: 1,
+                revPhone: userInfo.Phone,
+                sendTitl: "",
+                paymentType: "cash"
+            }), {
+                validateStatus: status => status === 200
+            }).catch(() => { throw new Error("ERR_GIFT_FAILED"); })
+                .then(res => res.data);
 
-        if (giftResult.includes('<p>선물(구매)하신 <strong class="point">모바일문화상품권</strong>을<br /><strong class="point">요청하신 정보로 전송</strong>하였습니다.</p>')) {
-            const giftData = giftResult.split("- 상품권 바로 충전 : https://m.cultureland.co.kr/csh/dc.do?code=")[1].split("&lt;br&gt;");
+            if (giftResult.includes('<strong> 컬쳐랜드상품권(모바일문화상품권) 선물(구매)가<br />완료되었습니다.</strong>')) {
+                const giftData = await this.client
+                    .get(
+                        giftResult.split('name="barcodeImage"')[1]
+                            .split('value="')[1]
+                            .split('"')[0]
+                    )
+                    .then((res) => res.data);
+
+                const pinCode = giftData
+                    .split("<span>바코드번호</span>")[1]
+                    .split("</span>")[0]
+                    .split(">")[1]
+                    .replace(/ /g, "");
+
+                return {
+                    success: true,
+                    message: "선물(구매)하신 모바일문화상품권을 본인번호로 전송하였습니다",
+                    amount,
+                    pin: pinCode
+                };
+            }
+
+            throw new Error("ERR_GIFT_FAILED");
+        } catch (e) {
+            return {
+                success: false,
+                message: (e as Error).message
+            };
+        }
+    };
+
+    public async isLogin() {
+        try {
+            const isLogin = await this.client.post("https://m.cultureland.co.kr/mmb/isLogin.json").then(res => res.data).catch(() => false);
+            return isLogin;
+        } catch {
+            return false;
+        };
+    };
+
+    public async getUserInfo(): Promise<{
+        success: true,
+        data: CulturelandUser
+    } | {
+        success: false,
+        message: string
+    }> {
+        try {
+            if (!(await this.isLogin())) throw new Error("ERR_LOGIN_REQUIRED");
+
+            const userInfo = await this.client.post("https://m.cultureland.co.kr/tgl/flagSecCash.json").then(res => res.data);
+
+            if (userInfo.resultMessage !== "성공") throw new Error("ERR_USERINFO_FAILED");
+
+            delete userInfo.user_id;
+            delete userInfo.user_key;
+            userInfo.CashPwd = userInfo.CashPwd !== "0";
+            userInfo.Del_Yn = userInfo.Del_Yn === "Y";
+            userInfo.idx = Number(userInfo.idx);
+            userInfo.SafeLevel = Number(userInfo.SafeLevel);
+            userInfo.userKey = Number(userInfo.userKey);
+
+            console.log(userInfo);
 
             return {
                 success: true,
-                message: "선물(구매)하신 모바일문화상품권을 요청하신 정보로 전송하였습니다",
-                code: giftData[0],
-                pin: giftData[8].replace("- 바코드번호 : ", "")
+                data: userInfo
             };
-        }
-
-        throw new Error("ERR_GIFT_FAILED");
-    };
-    */
-
-    public async isLogin() {
-        const isLogin = await this.client.post("https://m.cultureland.co.kr/mmb/isLogin.json").then(res => res.data === "true").catch(() => false);
-        return isLogin;
-    };
-
-    public async getUserInfo() {
-        if (!(await this.isLogin())) throw new Error("ERR_LOGIN_REQUIRED");
-
-        const userInfo = await this.client.post("https://m.cultureland.co.kr/tgl/flagSecCash.json").then(res => res.data);
-
-        if (userInfo.resultMessage !== "성공") throw new Error("ERR_USERINFO_FAILED");
-
-        delete userInfo.user_id;
-        delete userInfo.user_key;
-        userInfo.CashPwd = userInfo.CashPwd !== "0";
-        userInfo.Del_Yn = userInfo.Del_Yn === "Y";
-        userInfo.idx = Number(userInfo.idx);
-        userInfo.SafeLevel = Number(userInfo.SafeLevel);
-        userInfo.userKey = Number(userInfo.userKey);
-
-        return userInfo;
+        } catch (e) {
+            return {
+                success: false,
+                message: (e as Error).message
+            };
+        };
     };
 
     public async login(id: string, password: string) {
