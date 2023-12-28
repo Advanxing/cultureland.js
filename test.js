@@ -1,4 +1,4 @@
-import Cultureland from "./cultureland.js";
+import Cultureland from "./dist/cultureland.js";
 
 const client = new Cultureland();
 await client.login("ID", "PW").then(console.log).catch(console.error);
