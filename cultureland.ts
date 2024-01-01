@@ -178,7 +178,7 @@ class Cultureland {
             const chargeRequest = await this.client.post(pin.pinParts[3].length === 4 ? "https://m.cultureland.co.kr/csh/cshGiftCardProcess.do" : "https://m.cultureland.co.kr/csh/cshGiftCardOnlineProcess.do", requestBody, {
                 maxRedirects: 0,
                 validateStatus: status => status === 302
-            }).catch(() => { throw new Error("ERR_CHARGE_FAILED") });
+            }).catch(() => { throw new Error("알 수 없는 오류로 인해 충전에 실패하였습니다.") });
             const chargeResult = await this.client.get("https://m.cultureland.co.kr/" + chargeRequest.headers["location"]).then(res => res.data);
             const chargeData = chargeResult.split("<tbody>")[1].split("<td>");
             const message = chargeData[3].split("</td>")[0].replace(/<\/?[\d\w\s='#]+>/g, "");
@@ -221,8 +221,7 @@ class Cultureland {
                 paymentType: "cash"
             }), {
                 validateStatus: status => status === 200
-            }).catch(() => { throw new Error("ERR_GIFT_FAILED"); })
-                .then(res => res.data);
+            }).then(res => res.data).catch(() => { throw new Error("안심 금고에서 돈을 다 꺼낸 후 다시 시도해주세요.") });
 
             if (giftResult.includes('<strong> 컬쳐랜드상품권(모바일문화상품권) 선물(구매)가<br />완료되었습니다.</strong>')) {
                 const giftData = await this.client
@@ -245,9 +244,9 @@ class Cultureland {
                     amount,
                     pin: pinCode
                 };
-            }
+            };
 
-            throw new Error("ERR_GIFT_FAILED");
+            throw new Error("알 수 없는 오류로 인해 선물(구매)에 실패하였습니다.");
         } catch (e) {
             return {
                 success: false,
@@ -354,20 +353,20 @@ class Cultureland {
     public static checkPinFormat(pin: string): { success: true, message: string, pinParts: [string, string, string, string] } | { success: false, message: string } {
         if (typeof pin !== "string" || !pin) return {
             success: false,
-            message: "ERR_INVALID_PIN_TYPE"
+            message: "상품권 번호 불일치"
         };
         pin = pin.replace(/\D/g, "");
         let pinParts: string[] = [];
         if (pin.length === 16 || pin.length === 18) pinParts = [pin.substring(0, 4), pin.substring(4, 8), pin.substring(8, 12), pin.substring(12)];
         else return {
             success: false,
-            message: "ERR_INVALID_PIN_DELIMITER"
+            message: "상품권 번호 불일치"
         };
         pinParts = pinParts.filter(Boolean).map(p => String(p).trim());
 
         if (pinParts.some(Number.isNaN)) return {
             success: false,
-            message: "ERR_INVALID_TYPEOF_PIN_PART"
+            message: "상품권 번호 불일치"
         };
 
         if (
@@ -378,27 +377,27 @@ class Cultureland {
             ![4, 6].includes(pinParts[3].length)
         ) return {
             success: false,
-            message: "ERR_INVALID_PIN_LENGTH 1"
+            message: "상품권 번호 불일치"
         };
 
         if (pinParts[0].startsWith("41")) {
             if (pinParts[3].length !== 4) return {
                 success: false,
-                message: "ERR_INVALID_PIN_LENGTH 2"
+                message: "상품권 번호 불일치"
             };
         } else if (!["20", "21", "22", "23", "24", "25", "30", "31", "32", "33", "34", "35", "40", "42", "43", "44", "45", "51", "52", "53", "54", "55"].includes(pinParts[0].substring(0, 2))) return {
             success: false,
-            message: "ERR_INVALID_PIN_PREFIX 1"
+            message: "상품권 번호 불일치"
         };
 
         if (pinParts[0].startsWith("41") && !(pinParts[0].startsWith("416") || pinParts[0].startsWith("418"))) return {
             success: false,
-            message: "ERR_INVALID_PIN_PREFIX 2"
+            message: "상품권 번호 불일치"
         };
 
         return {
             success: true,
-            message: "Valid pin format.",
+            message: "OK",
             pinParts: pinParts as [string, string, string, string]
         };
     };

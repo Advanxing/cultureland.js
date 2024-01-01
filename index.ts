@@ -37,7 +37,7 @@ app.use((req, res, next) => {
       console.log(`NO_TOKEN | ERR_TOKEN_REQUIRED - ${Date.now() - req.start}ms`);
       return res.status(400).json({
         amount: 0,
-        message: "ERR_TOKEN_REQUIRED",
+        message: "API토큰을 입력해주세요.",
         success: false,
         timeout: Date.now() - req.start
       });
@@ -47,7 +47,7 @@ app.use((req, res, next) => {
       console.log(`${typeof token === "string" ? token.split("-")[0] : "INVALID_TOKEN_TYPE"} | ERR_INVALID_TOKEN - ${Date.now() - req.start}ms`);
       return res.status(400).json({
         amount: 0,
-        message: "ERR_INVALID_TOKEN",
+        message: "잘못된 API토큰입니다.",
         success: false,
         timeout: Date.now() - req.start
       });
@@ -57,7 +57,7 @@ app.use((req, res, next) => {
       console.log(`NO_TOKEN | ERR_INVALID_TYPE - ${Date.now() - req.start}ms`);
       return res.status(400).json({
         amount: 0,
-        message: "ERR_INVALID_TYPE",
+        message: "잘못된 요청입니다.",
         success: false,
         timeout: Date.now() - req.start
       });
@@ -67,7 +67,7 @@ app.use((req, res, next) => {
       console.log(`${token.split("-")[0]} | ERR_LOGIN_REQUIRED - ${Date.now() - req.start}ms`);
       return res.status(400).json({
         amount: 0,
-        message: "ERR_LOGIN_REQUIRED",
+        message: "아이디 또는 비밀번호를 입력해주세요.",
         success: false,
         timeout: Date.now() - req.start
       });
@@ -171,7 +171,7 @@ app.post("/gift", async function (req, res) {
     );
     return res.status(400).json({
       success: false,
-      message: "ERR_INVALID_AMOUNT",
+      message: "금액은 1000원 이상 50000원 이하로 입력해주세요.",
       amount: 0,
       timeout: Date.now() - req.start,
     });
