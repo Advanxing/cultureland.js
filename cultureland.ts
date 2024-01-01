@@ -337,7 +337,7 @@ class Cultureland {
                 maxRedirects: 0,
                 validateStatus: status => status === 302
             }).catch(() => { throw new Error("ERR_LOGIN_FAILED"); });
-            if (loginRequest.headers["location"] === "https://m.cultureland.co.kr/cmp/authConfirm.do") throw new Error("ERR_LOGIN_RESTRICTED");
+            if (loginRequest.headers["location"]?.endsWith("authConfirm.do")) throw new Error("이 아이피는 컬쳐랜드에서 로그인 제한을 당한 아이피입니다.");
             return {
                 success: true,
                 message: "Login success."
