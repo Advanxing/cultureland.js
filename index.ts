@@ -222,6 +222,10 @@ app.post("/gift", async function (req, res) {
   });
 });
 
+app.use(function (req, res) {
+  res.status(404).json({ success: false, message: "Not Found.", amount: 0, timeout: Date.now() - req.start });
+});
+
 app.use(function (error: Error, req: express.Request, res: express.Response, _next: express.NextFunction) {
   console.error("Web Server ERROR!", error);
   res.status(500).json({ success: false, message: "Internal Server Error. Please try again later.", amount: 0, timeout: Date.now() - req.start });
