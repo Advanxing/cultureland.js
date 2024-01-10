@@ -336,7 +336,7 @@ class Cultureland {
                 },
                 maxRedirects: 0,
                 validateStatus: status => status === 302
-            }).catch(() => { throw new Error("ERR_LOGIN_FAILED"); });
+            }).catch(() => { throw new Error("아이디 또는 비밀번호가 틀렸습니다."); });
             if (loginRequest.headers["location"]?.endsWith("authConfirm.do")) throw new Error("이 아이피는 컬쳐랜드에서 로그인 제한을 당한 아이피입니다.");
             return {
                 success: true,
