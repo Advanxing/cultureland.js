@@ -1,9 +1,10 @@
 ﻿import axios, { AxiosInstance } from "axios";
 import crypto from "crypto";
 import { HttpCookieAgent, HttpsCookieAgent } from "http-cookie-agent/http";
-import qs from "querystring";
 import { CookieJar } from "tough-cookie";
 import mTransKey from "./transkey.js";
+import fs from "fs";
+import { parse } from "node-html-parser";
 
 interface CulturelandUser {
     Del_Yn: boolean,
@@ -184,12 +185,15 @@ class Cultureland {
                 maxRedirects: 0,
                 validateStatus: status => status === 302
             }).catch(() => { throw new Error("알 수 없는 오류로 인해 충전에 실패하였습니다.") });
-            const chargeResult = await this.client.get("https://m.cultureland.co.kr/" + chargeRequest.headers["location"]).then(res => res.data);
+
+            const chargeResult = await this.client.get("https://m.cultureland.co.kr" + chargeRequest.headers["location"]).then(res => res.data);
+
             const chargeData = chargeResult.split("<tbody>")[1].split("<td>");
             const message = chargeData[3].split("</td>")[0].replace(/<\/?[\d\w\s='#]+>/g, "");
-            const amount = Number(chargeData[4].split("</td>")[0].replace(/\D/g, ""));
+            const amount = parseInt(chargeData[4].split("</td>")[0].replace(/\D/g, ""));
             const chargeData2 = chargeResult.split('class="result">')[1].split("</div>")[0];
             const [normalAmount, walletAmount] = chargeData2.split("dlWalletChargeAmt").map((x: string) => Number(x.replace(/\D/g, "")));
+
             return {
                 success: true,
                 message,
@@ -202,6 +206,157 @@ class Cultureland {
             };
         };
     };
+
+    /**
+     * 다량의 컬쳐랜드 핀번호를 한 번에 충전합니다.
+     * @param pins 상품권의 핀번호
+     * @param checkPin 충전 전에 핀번호에 잔액이 있는지 확인 (W.I.P)
+     * @return `success` 핀번호 유효성 | `message` 성공여부 | `amount` 충전금액
+     */
+    public async bulkCharge(pins: string[], checkPin = false): Promise<{ success: boolean, message: string, amount: number }[]> {
+        try {
+            if (!(await this.isLogin())) throw new Error("ERR_LOGIN_REQUIRED");
+
+            if (checkPin) {
+                // TODO: validate voucher codes
+            }
+
+            let pinResults = [];
+            for (const pin of pins) {
+                const formatResult = Cultureland.checkPinFormat(pin);
+
+                if (formatResult.success) {
+                    pinResults.push({
+                        success: true,
+                        message: formatResult.pinParts,
+                        amount: 0
+                    });
+                }
+                else {
+                    pinResults.push({
+                        success: false,
+                        message: formatResult.message,
+                        amount: 0
+                    });
+                }
+            }
+
+            if (pinResults.every(res => !res.success)) { // 모든 핀번호가 포맷과 일치하지 않는 경우
+                return pinResults as { success: boolean, message: string, amount: number }[];
+            }
+
+            const onlyMobileVouchers = pinResults
+                .filter(res => res.success)
+                .every(res => res.message[3].length === 4); // 모바일문화상품권만 있는지
+
+            await this.client.get(
+                onlyMobileVouchers ?
+                "https://m.cultureland.co.kr/csh/cshGiftCard.do" : // 모바일문화상품권
+                "https://m.cultureland.co.kr/csh/cshGiftCardOnline.do" // 문화상품권(18자리)
+            ); // 문화상품권(18자리)에서 모바일문화상품권도 충전 가능
+
+            const transKey = new mTransKey();
+            await transKey.getServletData(this.jar);
+            await transKey.getKeyData(this.jar);
+
+            let pinCount = 1;
+            const scrs: any = {}; // scr: scratch? screen? | 정확한 정보를 찾을 수 없어 약어 그대로 사용
+            const keyboards: any = []; // keyIndex, keyboardType, fieldType
+            const transkeys: any = []; // transkey, transkey_HM
+
+            for (const pin of pinResults) {
+                if (!pin.success) continue; // 포맷과 일치하지 않는 경우 건너뛰기
+
+                const scr4 = `scr${pinCount}4`, txtScr4 = `txtScr${pinCount}4`;
+
+                const keypad = await transKey.createKeypad(this.jar, "number", txtScr4, scr4, "password");
+                const skipData = await keypad.getSkipData();
+                const encryptedPin = keypad.encryptPassword(pin.message[3], skipData);
+
+                // scr
+                scrs[`scr${pinCount}1`] = pin.message[0];
+                scrs[`scr${pinCount}2`] = pin.message[1];
+                scrs[`scr${pinCount}3`] = pin.message[2];
+                scrs[scr4] = "*".repeat(pin.message[3].length);
+
+                // keyboard
+                const keyboard: any = {};
+                keyboard["keyIndex_" + txtScr4] = keypad.keyIndex;
+                keyboard["keyboardType_" + txtScr4] = "numberMobile";
+                keyboard["fieldType_" + txtScr4] = "password";
+                keyboards.push(keyboard);
+
+                // transkey
+                const transkey: any = {};
+                transkey["transkey_" + txtScr4] = encryptedPin;
+                transkey["transkey_HM_" + txtScr4] = transKey.crypto.hmacDigest(encryptedPin);
+                transkeys.push(transkey);
+
+                pinCount++;
+            }
+
+            let requestBody: any = {
+                versionCode: "",
+                ...scrs,
+                seedKey: transKey.crypto.encSessionKey,
+                initTime: transKey.initTime.toString(),
+                ...keyboards.shift(),
+                transkeyUuid: transKey.crypto.transkeyUuid, // WHY HERE?
+                ...transkeys.shift()
+            };
+
+            for (let i = 0; i < keyboards.length; i++) {
+                const keyboard = keyboards[i];
+                const transkey = transkeys[i];
+
+                requestBody = {
+                    ...requestBody,
+                    ...keyboard,
+                    ...transkey
+                };
+            }
+
+            const chargeRequest = await this.client.post(
+                onlyMobileVouchers ?
+                "https://m.cultureland.co.kr/csh/cshGiftCardProcess.do" : // 모바일문화상품권
+                "https://m.cultureland.co.kr/csh/cshGiftCardOnlineProcess.do", // 문화상품권(18자리)
+                new URLSearchParams(requestBody).toString(),
+                {
+                    maxRedirects: 0,
+                    validateStatus: status => status === 302
+                }
+            ).catch(() => { throw new Error("알 수 없는 오류로 인해 충전에 실패하였습니다.") });
+
+            const chargeResults = await this.client.get("https://m.cultureland.co.kr" + chargeRequest.headers["location"]).then(res => res.data); // 충전 결과 받아오기
+
+            const parsedResults = parse(chargeResults)
+                .getElementsByTagName("tbody")[0]
+                .getElementsByTagName("tr"); // 충전 결과 HTML 파싱
+
+            let resultCount = 0;
+            const results = [];
+
+            for (const pin of pinResults) {
+                if (!pin.success) results.push(pin as { success: boolean, message: string, amount: number });
+
+                const chargeResult = parsedResults[resultCount++].getElementsByTagName("td");
+
+                results.push({
+                    success: true,
+                    message: chargeResult[2].innerText,
+                    amount: parseInt(chargeResult[3].innerText.replace(/,/g, "").replace("원", ""))
+                });
+            }
+
+            return results;
+        } catch (e) {
+            return Array(pins.length).fill({
+                success: false,
+                message: (e as Error).message,
+                amount: 0
+            });
+        }
+    }
 
     public async gift(amount: number) {
         try {

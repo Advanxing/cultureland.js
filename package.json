@@ -31,6 +31,7 @@
         "http-cookie-agent": "^5.0.4",
         "jimp": "^0.16.2",
         "morgan": "^1.10.0",
+        "node-html-parser": "^6.1.12",
         "tough-cookie": "^4.1.3"
     },
     "type": "module",

@@ -151,6 +151,38 @@ app.post("/charge", async function (req, res) {
   });
 });
 
+app.post("/bulkCharge", async function (req, res) {
+  const { id, password, pins, token } = req.body;
+
+  const client = new Cultureland();
+
+  const loginResult = await client.login(id.trim(), password.trim());
+  if (!loginResult.success) {
+    console.log(`${token.slice(0, 8)} | LoginFailed - ${Date.now() - req.start}ms - ${JSON.stringify(loginResult)}`);
+    return res.status(400).json({
+      success: false,
+      message: loginResult.message,
+      amount: 0,
+      timeout: Date.now() - req.start
+    });
+  };
+
+  const chargeResults = await client.bulkCharge(pins, false);
+
+  for (const chargeResult of chargeResults) {
+    if (chargeResult.success) {
+      console.log(`${token.slice(0, 8)} | ChargeSuccess - ${Date.now() - req.start}ms - ${chargeResult.amount}원 - ${chargeResult.message}`);
+    } else {
+      console.log(`${token.slice(0, 8)} | ChargeFailed - ${Date.now() - req.start}ms - ${JSON.stringify(chargeResult)}`);
+    }
+  }
+
+  return res.status(200).json({
+    data: chargeResults,
+    timeout: Date.now() - req.start
+  });
+});
+
 app.post("/gift", async function (req, res) {
   const { id, password, amount, token } = req.body;
 
