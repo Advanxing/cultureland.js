@@ -36,6 +36,8 @@ interface CulturelandUser {
 class Cultureland {
     public jar: CookieJar;
     public client: AxiosInstance;
+    public id!: string;
+    public password!: string;
     public constructor() {
         this.jar = new CookieJar();
         this.client = axios.create({
@@ -338,6 +340,8 @@ class Cultureland {
                 validateStatus: status => status === 302
             }).catch(() => { throw new Error("아이디 또는 비밀번호가 틀렸습니다."); });
             if (loginRequest.headers["location"]?.endsWith("authConfirm.do")) throw new Error("이 아이피는 컬쳐랜드에서 로그인 제한을 당한 아이피입니다.");
+            this.id = id;
+            this.password = password;
             return {
                 success: true,
                 message: "Login success."
@@ -346,27 +350,27 @@ class Cultureland {
             return {
                 success: false,
                 message: (e as Error).message
-            }
+            };
         };
     };
 
-    public static checkPinFormat(pin: string): { success: true, message: string, pinParts: [string, string, string, string] } | { success: false, message: string } {
+    public static checkPinFormat(pin: string, customMessage = "상품권 번호 불일치"): { success: true, message: string, pinParts: [string, string, string, string] } | { success: false, message: string } {
         if (typeof pin !== "string" || !pin) return {
             success: false,
-            message: "상품권 번호 불일치"
+            message: customMessage
         };
         pin = pin.replace(/\D/g, "");
         let pinParts: string[] = [];
         if (pin.length === 16 || pin.length === 18) pinParts = [pin.substring(0, 4), pin.substring(4, 8), pin.substring(8, 12), pin.substring(12)];
         else return {
             success: false,
-            message: "상품권 번호 불일치"
+            message: customMessage
         };
         pinParts = pinParts.filter(Boolean).map(p => String(p).trim());
 
         if (pinParts.some(Number.isNaN)) return {
             success: false,
-            message: "상품권 번호 불일치"
+            message: customMessage
         };
 
         if (
@@ -377,22 +381,22 @@ class Cultureland {
             ![4, 6].includes(pinParts[3].length)
         ) return {
             success: false,
-            message: "상품권 번호 불일치"
+            message: customMessage
         };
 
         if (pinParts[0].startsWith("41")) {
             if (pinParts[3].length !== 4) return {
                 success: false,
-                message: "상품권 번호 불일치"
+                message: customMessage
             };
         } else if (!["20", "21", "22", "23", "24", "25", "30", "31", "32", "33", "34", "35", "40", "42", "43", "44", "45", "51", "52", "53", "54", "55"].includes(pinParts[0].substring(0, 2))) return {
             success: false,
-            message: "상품권 번호 불일치"
+            message: customMessage
         };
 
         if (pinParts[0].startsWith("41") && !(pinParts[0].startsWith("416") || pinParts[0].startsWith("418"))) return {
             success: false,
-            message: "상품권 번호 불일치"
+            message: customMessage
         };
 
         return {

@@ -33,26 +33,6 @@ app.use((req, res, next) => {
     req.body.token = tokens[0]; // Disabled token check
     const { id, password, token } = req.body;
 
-    if (!token) {
-      console.log(`NO_TOKEN | ERR_TOKEN_REQUIRED - ${Date.now() - req.start}ms`);
-      return res.status(400).json({
-        amount: 0,
-        message: "API토큰을 입력해주세요.",
-        success: false,
-        timeout: Date.now() - req.start
-      });
-    };
-
-    if (!tokens.includes(token)) {
-      console.log(`${typeof token === "string" ? token.split("-")[0] : "INVALID_TOKEN_TYPE"} | ERR_INVALID_TOKEN - ${Date.now() - req.start}ms`);
-      return res.status(400).json({
-        amount: 0,
-        message: "잘못된 API토큰입니다.",
-        success: false,
-        timeout: Date.now() - req.start
-      });
-    };
-
     if (typeof id !== "string" || typeof password !== "string" || typeof token !== "string") {
       console.log(`NO_TOKEN | ERR_INVALID_TYPE - ${Date.now() - req.start}ms`);
       return res.status(400).json({
@@ -63,8 +43,18 @@ app.use((req, res, next) => {
       });
     };
 
+    if (!tokens.includes(token)) {
+      console.log(`${token.slice(0, 8)} | ERR_INVALID_TOKEN - ${Date.now() - req.start}ms`);
+      return res.status(400).json({
+        amount: 0,
+        message: "잘못된 API토큰입니다.",
+        success: false,
+        timeout: Date.now() - req.start
+      });
+    };
+
     if (!id.trim() || !password.trim()) {
-      console.log(`${token.split("-")[0]} | ERR_LOGIN_REQUIRED - ${Date.now() - req.start}ms`);
+      console.log(`${token.slice(0, 8)} | ERR_LOGIN_REQUIRED - ${Date.now() - req.start}ms`);
       return res.status(400).json({
         amount: 0,
         message: "아이디 또는 비밀번호를 입력해주세요.",
@@ -83,7 +73,7 @@ app.post("/balance", async function (req, res) {
 
   const loginResult = await client.login(id.trim(), password.trim());
   if (!loginResult.success) {
-    console.log(`${token.split("-")[0]} | LoginFailed - ${Date.now() - req.start}ms - ${JSON.stringify(loginResult)}`);
+    console.log(`${token.slice(0, 8)} | LoginFailed - ${Date.now() - req.start}ms - ${JSON.stringify(loginResult)}`);
     return res.status(400).json({
       success: false,
       message: loginResult.message,
@@ -94,7 +84,7 @@ app.post("/balance", async function (req, res) {
 
   const balanceResult = await client.getBalance().catch(err => err);
   if (!balanceResult.success) {
-    console.log(`${token.split("-")[0]} | BalanceFailed - ${Date.now() - req.start}ms - ${balanceResult.message}`);
+    console.log(`${token.slice(0, 8)} | BalanceFailed - ${Date.now() - req.start}ms - ${balanceResult.message}`);
     return res.status(400).json({
       amount: 0,
       message: balanceResult.message,
@@ -103,7 +93,7 @@ app.post("/balance", async function (req, res) {
     });
   };
 
-  console.log(`${token.split("-")[0]} | BalanceSuccess - ${Date.now() - req.start}ms - ${balanceResult.data.myCash}원 - ${JSON.stringify(balanceResult.data)}`);
+  console.log(`${token.slice(0, 8)} | BalanceSuccess - ${Date.now() - req.start}ms - ${balanceResult.data.myCash}원 - ${JSON.stringify(balanceResult.data)}`);
   return res.status(200).json({
     amount: balanceResult.myCash,
     message: "OK",
@@ -118,7 +108,7 @@ app.post("/charge", async function (req, res) {
 
   const pinResult = Cultureland.checkPinFormat(pin);
   if (!pinResult.success) {
-    console.log(`${token.split("-")[0]} | ${pinResult.message} - ${Date.now() - req.start}ms`);
+    console.log(`${token.slice(0, 8)} | ${pinResult.message} - ${Date.now() - req.start}ms`);
     return res.status(400).json({
       success: false,
       message: pinResult.message,
@@ -131,7 +121,7 @@ app.post("/charge", async function (req, res) {
 
   const loginResult = await client.login(id.trim(), password.trim());
   if (!loginResult.success) {
-    console.log(`${token.split("-")[0]} | LoginFailed - ${Date.now() - req.start}ms - ${JSON.stringify(loginResult)}`);
+    console.log(`${token.slice(0, 8)} | LoginFailed - ${Date.now() - req.start}ms - ${JSON.stringify(loginResult)}`);
     return res.status(400).json({
       success: false,
       message: loginResult.message,
@@ -143,7 +133,7 @@ app.post("/charge", async function (req, res) {
   const chargeResult = await client.charge(pinResult.pinParts, false);
 
   if (!chargeResult.success) {
-    console.log(`${token.split("-")[0]} | ChargeFailed - ${Date.now() - req.start}ms - ${JSON.stringify(chargeResult)}`);
+    console.log(`${token.slice(0, 8)} | ChargeFailed - ${Date.now() - req.start}ms - ${JSON.stringify(chargeResult)}`);
     return res.status(400).json({
       success: false,
       message: chargeResult.message,
@@ -152,7 +142,7 @@ app.post("/charge", async function (req, res) {
     });
   };
 
-  console.log(`${token.split("-")[0]} | ChargeSuccess - ${Date.now() - req.start}ms - ${chargeResult.amount}원 - ${chargeResult.message.replace("<b>", "").replace("</b>", "")}`);
+  console.log(`${token.slice(0, 8)} | ChargeSuccess - ${Date.now() - req.start}ms - ${chargeResult.amount}원 - ${chargeResult.message.replace("<b>", "").replace("</b>", "")}`);
   return res.status(200).json({
     success: !!chargeResult.amount,
     message: chargeResult.message.replace("<b>", "").replace("</b>", ""),
@@ -166,7 +156,7 @@ app.post("/gift", async function (req, res) {
 
   if (typeof amount !== "number" || amount < 1000 || amount > 50000) {
     console.log(
-      `${token.split("-")[0]} | GiftFailed - ${Date.now() - req.start
+      `${token.slice(0, 8)} | GiftFailed - ${Date.now() - req.start
       }ms - ${amount}`
     );
     return res.status(400).json({
@@ -182,7 +172,7 @@ app.post("/gift", async function (req, res) {
   const loginResult = await client.login(id.trim(), password.trim());
   if (!loginResult.success) {
     console.log(
-      `${token.split("-")[0]} | LoginFailed - ${Date.now() - req.start
+      `${token.slice(0, 8)} | LoginFailed - ${Date.now() - req.start
       }ms - ${JSON.stringify(loginResult)}`
     );
     return res.status(400).json({
@@ -197,7 +187,7 @@ app.post("/gift", async function (req, res) {
 
   if (!giftResult.success) {
     console.log(
-      `${token.split("-")[0]} | GiftFailed - ${Date.now() - req.start
+      `${token.slice(0, 8)} | GiftFailed - ${Date.now() - req.start
       }ms - ${JSON.stringify(giftResult)}`
     );
     return res.status(400).json({
@@ -209,7 +199,7 @@ app.post("/gift", async function (req, res) {
   }
 
   console.log(
-    `${token.split("-")[0]} | GiftSuccess - ${Date.now() - req.start
+    `${token.slice(0, 8)} | GiftSuccess - ${Date.now() - req.start
     }ms - ${giftResult.amount}원 - ${giftResult.message}`
   );
 
