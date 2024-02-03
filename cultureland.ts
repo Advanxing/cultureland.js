@@ -288,8 +288,6 @@ class Cultureland {
             userInfo.SafeLevel = Number(userInfo.SafeLevel);
             userInfo.userKey = Number(userInfo.userKey);
 
-            console.log(userInfo);
-
             return {
                 success: true,
                 data: userInfo
