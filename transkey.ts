@@ -44,14 +44,14 @@ class mTransKey {
                 "Connection": "keep-alive"
             }
         };
-        const keyPositions = await axios.post("https://m.cultureland.co.kr/transkeyServlet", qs.stringify({
+        const keyPositions = await axios.post("https://m.cultureland.co.kr/transkeyServlet", new URLSearchParams({
             "op": "getKeyInfo",
             "key": this.crypto.encSessionKey,
             "transkeyUuid": this.crypto.transkeyUuid,
-            "useCert": true,
+            "useCert": "true",
             "TK_requestToken": this.token,
             "mode": "Mobile"
-        }), options).then(res => res.data);
+        }).toString(), options).then(res => res.data);
 
         const [qwerty, num] = keyPositions.split("var numberMobile = new Array();");
 
@@ -84,38 +84,38 @@ class mTransKey {
                 "Connection": "keep-alive"
             }
         };
-        const keyIndex = await axios.post("https://m.cultureland.co.kr/transkeyServlet", qs.stringify({
+        const keyIndex = await axios.post("https://m.cultureland.co.kr/transkeyServlet", new URLSearchParams({
             "op": "getKeyIndex",
             "name": name,
             "keyType": keyboardType === "qwerty" ? "lower" : "single",
             "keyboardType": `${keyboardType}Mobile`,
             "fieldType": fieldType,
             "inputName": inputName,
-            "parentKeyboard": false,
+            "parentKeyboard": "false",
             "transkeyUuid": this.crypto.transkeyUuid,
-            "exE2E": false,
+            "exE2E": "false",
             "TK_requestToken": this.token,
-            "allocationIndex": this.crypto.allocationIndex,
+            "allocationIndex": this.crypto.allocationIndex.toString(),
             "keyIndex": "",
-            "initTime": this.initTime,
-            "talkBack": true
-        }), options).then(res => res.data);
+            "initTime": this.initTime.toString(),
+            "talkBack": "true"
+        }).toString(), options).then(res => res.data);
 
-        const keyImage = await axios.get("https://m.cultureland.co.kr/transkeyServlet?" + qs.stringify({
+        const keyImage = await axios.get("https://m.cultureland.co.kr/transkeyServlet?" + new URLSearchParams({
             "op": "getKey",
             "name": name,
             "keyType": keyboardType === "qwerty" ? "lower" : "single",
             "keyboardType": `${keyboardType}Mobile`,
             "fieldType": fieldType,
             "inputName": inputName,
-            "parentKeyboard": false,
+            "parentKeyboard": "false",
             "transkeyUuid": this.crypto.transkeyUuid,
-            "exE2E": false,
+            "exE2E": "false",
             "TK_requestToken": this.token,
-            "allocationIndex": this.crypto.allocationIndex,
+            "allocationIndex": this.crypto.allocationIndex.toString(),
             "keyIndex": keyIndex,
-            "initTime": this.initTime
-        }), {
+            "initTime": this.initTime.toString()
+        }).toString(), {
             ...options,
             responseType: "arraybuffer"
         })

@@ -51,6 +51,8 @@ class Cultureland {
     };
 
     public async checkPin(pin: string) {
+        throw new Error("Work in progress");
+
         if (!(await this.isLogin())) throw new Error("ERR_LOGIN_REQUIRED");
         const pinFormatResult = Cultureland.checkPinFormat(pin);
         if (!pinFormatResult.success) return {
@@ -162,14 +164,14 @@ class Cultureland {
             const skipData = await keypad.getSkipData();
             const encryptedPin = keypad.encryptPassword(pin.pinParts[3], skipData);
 
-            const requestBody = qs.stringify({
+            const requestBody = new URLSearchParams({
                 versionCode: "",
                 scr11: pin.pinParts[0],
                 scr12: pin.pinParts[1],
                 scr13: pin.pinParts[2],
                 scr14: "*".repeat(pin.pinParts[3].length),
                 seedKey: transKey.crypto.encSessionKey,
-                initTime: transKey.initTime,
+                initTime: transKey.initTime.toString(),
                 keyIndex_txtScr14: keypad.keyIndex,
                 keyboardType_txtScr14: "numberMobile",
                 fieldType_txtScr14: "password",
@@ -177,7 +179,8 @@ class Cultureland {
                 transkey_txtScr14: encryptedPin,
                 transkey_HM_txtScr14: transKey.crypto.hmacDigest(encryptedPin)
             });
-            const chargeRequest = await this.client.post(pin.pinParts[3].length === 4 ? "https://m.cultureland.co.kr/csh/cshGiftCardProcess.do" : "https://m.cultureland.co.kr/csh/cshGiftCardOnlineProcess.do", requestBody, {
+
+            const chargeRequest = await this.client.post(pin.pinParts[3].length === 4 ? "https://m.cultureland.co.kr/csh/cshGiftCardProcess.do" : "https://m.cultureland.co.kr/csh/cshGiftCardOnlineProcess.do", requestBody.toString(), {
                 maxRedirects: 0,
                 validateStatus: status => status === 302
             }).catch(() => { throw new Error("알 수 없는 오류로 인해 충전에 실패하였습니다.") });
@@ -210,18 +213,18 @@ class Cultureland {
 
             await this.client.get("https://m.cultureland.co.kr/gft/gftPhoneApp.do");
 
-            const giftResult = await this.client.post("https://m.cultureland.co.kr/gft/gftPhoneCashProc.do", qs.stringify({
+            const giftResult = await this.client.post("https://m.cultureland.co.kr/gft/gftPhoneCashProc.do", new URLSearchParams({
                 revEmail: "",
                 sendType: "S",
-                userKey: userInfo.userKey,
+                userKey: userInfo.userKey.toString(),
                 limitGiftBank: "N",
                 giftCategory: "M",
-                amount,
-                quantity: 1,
+                amount: amount.toString(),
+                quantity: "1",
                 revPhone: userInfo.Phone,
                 sendTitl: "",
                 paymentType: "cash"
-            }), {
+            }).toString(), {
                 validateStatus: status => status === 200
             }).then(res => res.data).catch(() => { throw new Error("안심 금고에서 돈을 다 꺼낸 후 다시 시도해주세요.") });
 
@@ -310,7 +313,7 @@ class Cultureland {
             const keypad = await transKey.createKeypad(this.jar, "qwerty", "passwd", "passwd", "password");
             const skipData = await keypad.getSkipData();
             const encryptedPassword = keypad.encryptPassword(password, skipData);
-            const requestBody = qs.stringify({
+            const requestBody = new URLSearchParams({
                 agentUrl: "",
                 returnUrl: "",
                 keepLoginInfo: "",
@@ -322,14 +325,14 @@ class Cultureland {
                 passwd: "*".repeat(password.length),
                 keepLogin: "Y",
                 seedKey: transKey.crypto.encSessionKey,
-                initTime: transKey.initTime,
+                initTime: transKey.initTime.toString(),
                 keyIndex_passwd: keypad.keyIndex,
                 keyboardType_passwd: keypad.keyboardType + "Mobile",
                 fieldType_passwd: keypad.fieldType,
                 transkeyUuid: transKey.crypto.transkeyUuid,
                 transkey_passwd: encryptedPassword,
                 transkey_HM_passwd: transKey.crypto.hmacDigest(encryptedPassword)
-            });
+            }).toString();
             const loginRequest = await this.client.post("https://m.cultureland.co.kr/mmb/loginProcess.do", requestBody, {
                 headers: {
                     "Referer": "https://m.cultureland.co.kr/mmb/loginMain.do"
