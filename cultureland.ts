@@ -3,7 +3,6 @@ import crypto from "crypto";
 import { HttpCookieAgent, HttpsCookieAgent } from "http-cookie-agent/http";
 import { CookieJar } from "tough-cookie";
 import mTransKey from "./transkey.js";
-import fs from "fs";
 import { parse } from "node-html-parser";
 
 interface CulturelandUser {
@@ -337,7 +336,10 @@ class Cultureland {
             const results = [];
 
             for (const pin of pinResults) {
-                if (!pin.success) results.push(pin as { success: boolean, message: string, amount: number });
+                if (!pin.success) {
+                    results.push(pin as { success: boolean, message: string, amount: number });
+                    continue;
+                }
 
                 const chargeResult = parsedResults[resultCount++].getElementsByTagName("td");
 
