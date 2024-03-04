@@ -1,6 +1,7 @@
 import { BigInteger, SecureRandom } from "@modern-dev/jsbn";
 import crypto from "crypto";
 import genKey from "./genKey.js";
+
 const pKey = ["00ce263e3fd958264da51416be398e42d893df856851e56358377fa4296accb1695b772453b6fb9df530633739648db5bdcec56f9b4358d96635af646a96c2ffdabfc96319074aa99ac94494071225ec43f4ce1e03dc9d0b6df4f56c5d2c2b2e743c3836570de64aace82d9c35977568390fe196a67dd19b5a30ec66a8d0405a9d160ec7ad81f33e7e66e5da42938aa6ad8c8b743cc0f87b4a4954fbc1c78303046e503cfbb430c37a27503a6ff9ae403f51e311b07d4f005e925745ea3f9c6c2ad0033e41ed97fd24e2292de3336433d92fc1c22ffed72645c443a679ac52c64c101c67bdba389a3276dfd1539af9eab8cef96cf565bebb688da7d60822390a4b", "010001"];
 
 class Crypto {
@@ -10,10 +11,9 @@ class Crypto {
     public encSessionKey: string;
     public allocationIndex: number;
     public constructor() {
-        this.sessionKey = new Array(16);
         this.transkeyUuid = genKey.tk_sh1prng();
         this.genSessionKey = genKey.GenerateKey(128);
-        for (var i = 0; i < 16; i++) this.sessionKey[i] = Number("0x0" + this.genSessionKey.charAt(i));
+        this.sessionKey = new Array(16).fill(null).map((_, i) => parseInt(this.genSessionKey.charAt(i), 16));
         this.encSessionKey = this.phpbb_encrypt2048(this.genSessionKey, 256, pKey[1], pKey[0]);
         this.allocationIndex = genKey.tk_getrnd_int();
     }
@@ -143,7 +143,7 @@ class Crypto {
             temp2 = new Array(4);
             new SecureRandom().nextBytes(temp2);
             seed += String.fromCharCode(temp2[0], temp2[1], temp2[2], temp2[3]);
-        };
+        }
         seed = seed.substring(4 - seed.length % 4);
         var dbMask = this.mgf1(seed, k - hLen - 1);
 
@@ -172,13 +172,10 @@ class Crypto {
 
         var _rsaoen = "";
 
-        while (_rsaoen.length < 512) {
-            _rsaoen = this.rsaes_oaep_encrypt(plaintext, _n, k, _e);
-            if (_rsaoen.length > 511) break;
-        }
+        while (_rsaoen.length < 512) _rsaoen = this.rsaes_oaep_encrypt(plaintext, _n, k, _e);
 
         return _rsaoen;
     }
-};
+}
 
 export default Crypto;

@@ -1,7 +1,8 @@
 import crypto from "crypto";
+
 const screen = { width: 1920, height: 1080, availWidth: 1920, availHeight: 1040, colorDepth: 24 };
 
-class GenKey {
+export default class GenKey {
     public static GenerateKey(bit: number) {
         const cnt = bit / 32;
         var key = "";
@@ -31,14 +32,15 @@ class GenKey {
         if (length < 20) {
             rand = this.tk_sh1prng();
             rand = rand.substring(0, length * 2);
-        } else {
+        }
+        else {
             for (var i = 0; i < (length / 20); i++) rand += this.tk_sh1prng();
 
             if (length % 20) {
                 let rand_tmp = this.tk_sh1prng();
                 rand += rand_tmp.substring(0, (length % 20) * 2);
-            };
-        };
+            }
+        }
 
         return rand;
     }
@@ -52,5 +54,3 @@ class GenKey {
         return rand_int;
     }
 }
-
-export default GenKey;

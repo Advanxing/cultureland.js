@@ -1,7 +1,16 @@
 import Cultureland from "./dist/cultureland.js";
 
 const client = new Cultureland();
-await client.login("ID", "PW").then(console.log).catch(console.error);
-await client.getBalance().then(console.log).catch(console.error);
-await client.charge(["0000", "0000", "0000", "000000"], false).then(console.log).catch(console.error);
-// await client.checkPin("000000000000000000").then(console.log).catch(console.error);
+
+// await client.login("ID", "PW").then(console.log).catch(console.error);
+// await client.loginWithKeepLoginConfig("keepLoginConfig").then(console.log).catch(console.error);
+// await client.checkVoucher("4180-0000-0000-0000").then(console.log).catch(console.error);
+// await client.getBalance().then(console.log).catch(console.error);
+// await client.charge("4180-0000-0000-0000").then(console.log).catch(console.error);
+// await client.bulkCharge(["4180-0000-0000-0000"]).then(console.log).catch(console.error);
+// await client.gift(1000).then(console.log).catch(console.error);
+// await client.changeSmileCash(1000).then(console.log).catch(console.error);
+// await client.changeCoupangCash(1000).then(console.log).catch(console.error);
+// await client.getCultureCashLogs(1).then(console.log).catch(console.error);
+// await client.getUserInfo().then(console.log).catch(console.error);
+// await client.checkPinFormat("4180-0000-0000-0000").then(console.log).catch(console.error);
