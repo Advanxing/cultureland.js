@@ -2,7 +2,7 @@ import Cultureland from "./dist/cultureland.js";
 
 const client = new Cultureland();
 
-// await client.login("ID", "PW").then(console.log).catch(console.error);
+// await client.login("ID", "PW", "captchaKey").then(console.log).catch(console.error);
 // await client.loginWithKeepLoginConfig("keepLoginConfig").then(console.log).catch(console.error);
 // await client.checkVoucher("4180-0000-0000-0000").then(console.log).catch(console.error);
 // await client.getBalance().then(console.log).catch(console.error);

@@ -274,3 +274,22 @@ export interface CulturelandVoucherFormat {
     message: string;
     parts?: [string, string, string, string];
 }
+
+export interface CreateTask {
+    errorId: number;
+    errorCode: string;
+    errorDescription: string;
+    taskId?: number;
+}
+
+export interface TaskResult {
+    errorId: number;
+    errorCode: string | null;
+    errorDescription: string | null;
+    solution: {
+        userAgent: string;
+        respKey?: string;
+        gRecaptchaResponse: string;
+    };
+    status: string;
+}

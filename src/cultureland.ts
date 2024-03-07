@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { HttpCookieAgent, HttpsCookieAgent } from "http-cookie-agent/http";
 import { CookieJar } from "tough-cookie";
 import mTransKey from "./mTranskey/transkey.js";
+import CapMonster from "./capmonster.js";
 import { parse } from "node-html-parser";
 import { KeyStringValueStringObject, CulturelandVoucher, BalanceResponse, CulturelandBalance, PhoneInfoResponse, CulturelandCharge, CulturelandGift, GiftLimitResponse, CulturelandGiftLimit, ChangeCoupangCashResponse, CulturelandChangeCoupangCash, ChangeSmileCashResponse, CulturelandChangeSmileCash, UserInfoResponse, CulturelandUser, CashLogsResponse, CulturelandCashLogs, CulturelandVoucherFormat } from "./types.js";
 
@@ -624,13 +625,14 @@ export default class Cultureland {
      * ID와 PW로 컬쳐랜드에 로그인합니다.
      * @param id 컬쳐랜드 ID
      * @param password 컬쳐랜드 PW
+     * @param captchaKey CapMonster API 키 (로그인 보안 그림 인증시 필요)
      * @param browserId 브라우저 아이디 `/assets/js/egovframework/com/cland/was/mmb/loginMain.js?version=1.0` L19
      * @param macAddress 맥 주소 `/assets/js/egovframework/com/cland/was/mmb/loginMain.js?version=1.0` L28
      * @returns `success` 로그인 성공여부
      * @returns `message` 로그인 메시지
      * @returns `keepLoginConfig` 로그인 유지 쿠키
      */
-    public async login(id: string, password: string, browserId?: string, macAddress?: string) {
+    public async login(id: string, password: string, captchaKey?: string, browserId?: string, macAddress?: string) {
         if (!macAddress) {
             macAddress = await this.client.post("https://m.cultureland.co.kr/mmb/macAddrSelect.json", "flag=newMacAddr", {
                 headers: {
@@ -647,6 +649,24 @@ export default class Cultureland {
         const keypadLayout = await keypad.getKeypadLayout();
         const encryptedPassword = keypad.encryptPassword(password, keypadLayout);
 
+        let captchaResponse = "";
+        if (captchaKey) {
+            const capMonster = new CapMonster(captchaKey);
+
+            const taskId = await capMonster.createTask("HCaptchaTaskProxyless", "https://m.cultureland.co.kr/mmb/loginMain.do", "3818bcdf-30ee-4d2f-bfd3-55dda192c639", true);
+
+            const captchaResult = await capMonster.awaitTaskResult(taskId!);
+
+            if (!captchaResult.success) {
+                return {
+                    success: false,
+                    message: "보안 그림 인증 실패 하였습니다. 다시 시도해주세요."
+                };
+            }
+
+            captchaResponse = captchaResult.solution!;
+        }
+
         const requestBody = new URLSearchParams({
             agentUrl: "",
             returnUrl: "",
@@ -656,6 +676,7 @@ export default class Cultureland {
             bioCheckResult: "",
             browserId: browserId ?? crypto.randomBytes(16).toString("hex"),
             newMacAddr: macAddress ?? crypto.randomBytes(15).toString("hex").toUpperCase(),
+            checkhCaptcha: captchaResponse,
             userId: id,
             passwd: "*".repeat(password.length),
             keepLogin: "Y",
@@ -675,13 +696,16 @@ export default class Cultureland {
                 "Referer": "https://m.cultureland.co.kr/mmb/loginMain.do"
             },
             maxRedirects: 0,
-            validateStatus: status => status === 302
-        }).catch(() => null);
+            validateStatus: status => status === 200 || status === 302
+        });
 
-        if (!loginRequest) {
+        // 메인 페이지로 리다이렉션되지 않은 경우
+        if (loginRequest.status === 200) {
+            const errorMessage = loginRequest.data.match(/<input type="hidden" name="loginErrMsg"  value="([^"]+)" \/>/)?.[1];
+
             return {
                 success: false,
-                message: "입력하신 아이디 또는 비밀번호가 틀립니다"
+                message: errorMessage?.replace(/\\n/g, " ") ?? "입력하신 아이디 또는 비밀번호가 틀립니다"
             };
         }
 
