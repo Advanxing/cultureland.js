@@ -5,6 +5,7 @@ import Cultureland from "./cultureland.js";
 
 const app = express();
 
+const captchaKey = "";
 const tokens = [
     "00000000-0000-0000-0000-000000000000"
 ];
@@ -75,7 +76,7 @@ app.post("/balance", async function (req, res) {
 
     const client = new Cultureland();
 
-    const loginResult = await client.login(id.trim(), password.trim()).catch(console.error);
+    const loginResult = await client.login(id.trim(), password.trim(), captchaKey).catch(console.error);
     if (!loginResult) {
         console.log(`[${getDateString()}] ${token.slice(0, 8)} | LoginFailed - Server Error`);
         return res.status(500).json({
@@ -134,7 +135,7 @@ app.post("/charge", async function (req, res) {
 
     const client = new Cultureland();
 
-    const loginResult = await client.login(id.trim(), password.trim()).catch(console.error);
+    const loginResult = await client.login(id.trim(), password.trim(), captchaKey).catch(console.error);
     if (!loginResult) {
         console.log(`[${getDateString()}] ${token.slice(0, 8)} | LoginFailed - Server Error`);
         return res.status(500).json({
@@ -192,7 +193,7 @@ app.post("/bulkCharge", async function (req, res) {
 
     const client = new Cultureland();
 
-    const loginResult = await client.login(id.trim(), password.trim()).catch(console.error);
+    const loginResult = await client.login(id.trim(), password.trim(), captchaKey).catch(console.error);
     if (!loginResult) {
         console.log(`[${getDateString()}] ${token.slice(0, 8)} | LoginFailed - Server Error`);
         return res.status(500).json(Array(pins.length).fill({
@@ -246,7 +247,7 @@ app.post("/gift", async function (req, res) {
 
     const client = new Cultureland();
 
-    const loginResult = await client.login(id.trim(), password.trim()).catch(console.error);
+    const loginResult = await client.login(id.trim(), password.trim(), captchaKey).catch(console.error);
     if (!loginResult) {
         console.log(`[${getDateString()}] ${token.slice(0, 8)} | LoginFailed - Server Error`);
         return res.status(500).json({
