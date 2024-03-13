@@ -1,7 +1,7 @@
 ﻿import axios, { AxiosInstance } from "axios";
 import crypto from "crypto";
 import { HttpCookieAgent, HttpsCookieAgent } from "http-cookie-agent/http";
-import { CookieJar } from "tough-cookie";
+import { Cookie, CookieJar } from "tough-cookie";
 import mTransKey from "./mTranskey/transkey.js";
 import CapMonster from "./capmonster.js";
 import { parse } from "node-html-parser";
@@ -653,8 +653,10 @@ export default class Cultureland {
         if (captchaKey) {
             const capMonster = new CapMonster(captchaKey);
 
+            // CapMonster API에게 컬쳐랜드 로그인 hCaptcha 해결 요청
             const taskId = await capMonster.createTask("HCaptchaTaskProxyless", "https://m.cultureland.co.kr/mmb/loginMain.do", "3818bcdf-30ee-4d2f-bfd3-55dda192c639", true);
 
+            // 캡챠 해결이 완료될 때까지 기다리고 응답 받아오기
             const captchaResult = await capMonster.awaitTaskResult(taskId!);
 
             if (!captchaResult.success) {
@@ -665,6 +667,17 @@ export default class Cultureland {
             }
 
             captchaResponse = captchaResult.solution!;
+        }
+        else { // 캡챠키를 입력하지 않았을 경우
+            const randomString = Array(64).fill("").map( // 0-9a-zA-Z 랜덤 string 생성 (64글자)
+                () =>
+                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".charAt(Math.random()*62)
+            ).join("");
+
+            await this.cookieJar.setCookie(
+                new Cookie({ key: "KeepLoginConfig", value: randomString }),
+                "https://m.cultureland.co.kr"
+            ); // KeepLoginConfig 쿠키를 사용할 경우 hCaptcha 값의 유효 여부를 확인하지 않는 취약점 사용
         }
 
         const requestBody = new URLSearchParams({

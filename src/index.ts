@@ -5,7 +5,7 @@ import Cultureland from "./cultureland.js";
 
 const app = express();
 
-const captchaKey = "";
+const captchaKey = ""; // api.capmonster.cloud (선택, 보안 그림 인증 실패할 경우 사용)
 const tokens = [
     "00000000-0000-0000-0000-000000000000"
 ];
