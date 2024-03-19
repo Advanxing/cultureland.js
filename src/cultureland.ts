@@ -31,7 +31,9 @@ export default class Cultureland {
     public async checkVoucher(pin: string): Promise<CulturelandVoucher> {
         if (!(await this.isLogin())) throw new Error("로그인이 필요한 서비스 입니다.");
 
-        if (!pin.startsWith("4")) {
+        // 41로 시작하지 않거나 311~319로 시작하지 않는다면 리턴
+        // /assets/js/egovframework/com/cland/was/util/ClandCmmUtl.js L1281
+        if (!pin.startsWith("41") || !pin.match(/^31[1-9]/)) {
             return {
                 success: false,
                 message: "정확한 모바일 상품권 번호를 입력하세요."
@@ -671,7 +673,7 @@ export default class Cultureland {
         else { // 캡챠키를 입력하지 않았을 경우
             const randomString = Array(64).fill("").map( // 0-9a-zA-Z 랜덤 string 생성 (64글자)
                 () =>
-                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".charAt(Math.random()*62)
+                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".charAt(Math.random() * 62)
             ).join("");
 
             await this.cookieJar.setCookie(
@@ -877,11 +879,15 @@ export default class Cultureland {
                 message: customMessage
             };
         }
+        else if (parts[0].match(/^31[1-9]/) && parts[3].length === 4) { // 핀번호가 31로 시작하고 3번째 자리가 1~9이고, 마지막 핀번호 부분이 4자리라면
+            // 검증 성공 (2024년 3월에 추가된 핀번호 형식)
+            // /assets/js/egovframework/com/cland/was/util/ClandCmmUtl.js L1281
+        }
         else if (
             ["2", "3", "4", "5"].includes(parts[0].charAt(0)) && // 핀번호가 2, 3, 4, 5로 시작하고
             ["0", "1", "2", "3", "4", "5"].includes(parts[0].charAt(1)) // 핀번호의 2번째 글자가 0, 1, 2, 3, 4, 5라면
             ) {
-            if (parts[3].length === 6) { // 마지막 핀번호 부분이 6자리가 아니라면 검증 실패
+            if (parts[3].length !== 6) { // 마지막 핀번호 부분이 6자리가 아니라면 검증 실패
                 return {
                     success: false,
                     message: customMessage
