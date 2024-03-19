@@ -13,4 +13,4 @@ const client = new Cultureland();
 // await client.changeCoupangCash(1000).then(console.log).catch(console.error);
 // await client.getCultureCashLogs(1).then(console.log).catch(console.error);
 // await client.getUserInfo().then(console.log).catch(console.error);
-// await client.checkPinFormat("4180-0000-0000-0000").then(console.log).catch(console.error);
+// console.log(Cultureland.checkPinFormat("4180-0000-0000-0000"));
