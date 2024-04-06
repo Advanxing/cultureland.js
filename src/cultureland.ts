@@ -231,7 +231,7 @@ export default class Cultureland {
 
         const onlyMobileVouchers = pinResults
             .filter(res => res.success) // 핀번호 포맷 검사를 통과한 상품권 중
-            .every(res => res.parts[3].length === 4); // 모바일문화상품권만 있는지
+            .every(res => res.parts![3].length === 4); // 모바일문화상품권만 있는지
 
         // 선행 페이지 요청을 보내지 않으면 잘못된 접근 오류 발생
         await this.client.get(
