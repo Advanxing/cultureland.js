@@ -239,6 +239,14 @@ export interface CulturelandUser {
     category?: string;
 }
 
+export interface CulturelandMember {
+    success: boolean;
+    message: "성공" | "멤버 정보를 가져올 수 없습니다.";
+    id?: string;
+    name?: string;
+    verificationLevel?: string;
+}
+
 export type CashLogsResponse = {
     item: {
         accDate: string;

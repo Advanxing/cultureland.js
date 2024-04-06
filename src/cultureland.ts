@@ -5,7 +5,7 @@ import { Cookie, CookieJar } from "tough-cookie";
 import mTransKey from "./mTranskey/transkey.js";
 import CapMonster from "./capmonster.js";
 import { parse } from "node-html-parser";
-import { KeyStringValueStringObject, CulturelandVoucher, BalanceResponse, CulturelandBalance, PhoneInfoResponse, CulturelandCharge, CulturelandGift, GiftLimitResponse, CulturelandGiftLimit, ChangeCoupangCashResponse, CulturelandChangeCoupangCash, ChangeSmileCashResponse, CulturelandChangeSmileCash, UserInfoResponse, CulturelandUser, CashLogsResponse, CulturelandCashLogs, CulturelandVoucherFormat } from "./types.js";
+import { KeyStringValueStringObject, CulturelandVoucher, BalanceResponse, CulturelandBalance, PhoneInfoResponse, CulturelandCharge, CulturelandGift, GiftLimitResponse, CulturelandGiftLimit, ChangeCoupangCashResponse, CulturelandChangeCoupangCash, ChangeSmileCashResponse, CulturelandChangeSmileCash, UserInfoResponse, CulturelandUser, CulturelandMember, CashLogsResponse, CulturelandCashLogs, CulturelandVoucherFormat } from "./types.js";
 
 export default class Cultureland {
     public cookieJar: CookieJar;
@@ -566,6 +566,37 @@ export default class Cultureland {
             userIp: userInfo.userIp,
             index: parseInt(userInfo.idx),
             category: userInfo.category
+        };
+    }
+
+    /**
+     * 내정보 페이지에서 멤버정보를 가져옵니다.
+     * @returns `success` 멤버정보 성공여부
+     * @returns `message` 멤버정보 메시지
+     * @returns `id` 컬쳐랜드 ID
+     * @returns `name` 멤버의 이름 (홍*동)
+     * @returns `verificationLevel` 멤버의 인증 등급 (본인인증)
+     */
+    public async getMemberInfo(): Promise<CulturelandMember> {
+        if (!(await this.isLogin())) throw new Error("로그인이 필요한 서비스 입니다.");
+
+        const memberInfo: string = await this.client.post("https://m.cultureland.co.kr/mmb/mmbMain.do").then(res => res.data);
+
+        if (!memberInfo.includes("meTop_info")) {
+            return {
+                success: false,
+                message: "멤버 정보를 가져올 수 없습니다."
+            };
+        }
+
+        const memberData = parse(memberInfo).getElementById("meTop_info")!;
+
+        return {
+            success: true,
+            message: "성공",
+            id: memberData.getElementsByTagName("span")[0].innerText,
+            name: memberData.getElementsByTagName("strong")[0].innerText.trim(),
+            verificationLevel: memberData.getElementsByTagName("p")[0].innerText
         };
     }
 
