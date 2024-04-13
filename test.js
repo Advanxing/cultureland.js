@@ -9,6 +9,7 @@ const client = new Cultureland();
 // await client.charge("4180-0000-0000-0000").then(console.log).catch(console.error);
 // await client.bulkCharge(["4180-0000-0000-0000"]).then(console.log).catch(console.error);
 // await client.gift(1000).then(console.log).catch(console.error);
+// await client.giftGooglePlay(5000, 1).then(console.log).catch(console.error);
 // await client.changeSmileCash(1000).then(console.log).catch(console.error);
 // await client.changeCoupangCash(1000).then(console.log).catch(console.error);
 // await client.getCultureCashLogs(1).then(console.log).catch(console.error);

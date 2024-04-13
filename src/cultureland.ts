@@ -5,7 +5,7 @@ import { Cookie, CookieJar } from "tough-cookie";
 import mTransKey from "./mTranskey/transkey.js";
 import CapMonster from "./capmonster.js";
 import { parse } from "node-html-parser";
-import { KeyStringValueStringObject, CulturelandVoucher, BalanceResponse, CulturelandBalance, PhoneInfoResponse, CulturelandCharge, CulturelandGift, GiftLimitResponse, CulturelandGiftLimit, ChangeCoupangCashResponse, CulturelandChangeCoupangCash, ChangeSmileCashResponse, CulturelandChangeSmileCash, UserInfoResponse, CulturelandUser, CulturelandMember, CashLogsResponse, CulturelandCashLogs, CulturelandVoucherFormat } from "./types.js";
+import { KeyStringValueStringObject, CulturelandVoucher, BalanceResponse, CulturelandBalance, PhoneInfoResponse, CulturelandCharge, CulturelandGift, GiftLimitResponse, CulturelandGiftLimit, ChangeCoupangCashResponse, CulturelandChangeCoupangCash, ChangeSmileCashResponse, CulturelandChangeSmileCash, CulturelandGooglePlay, GooglePlayBuyResponse, GooglePlayHistoryResponse, UserInfoResponse, CulturelandUser, CulturelandMember, CashLogsResponse, CulturelandCashLogs, CulturelandVoucherFormat } from "./types.js";
 
 export default class Cultureland {
     public cookieJar: CookieJar;
@@ -529,6 +529,294 @@ export default class Cultureland {
     }
 
     /**
+     * 컬쳐캐쉬를 사용해 Google Play 기프트 코드를 본인번호로 구매합니다. 안심금고가 활성화되어 있어야 합니다.
+     * @param amount 구매금액 (5천원, 1만원, 1만5천원, 3만원, 5만원, 10만원, 15만원, 20만원)
+     * @param quantity 구매수량 (최대 10개)
+     * @returns `success` 구매 성공여부
+     * @returns `message` 구매 메시지
+     * @returns `pin` 기프트코드 번호
+     * @returns `url` 자동 입력 URL
+     * @returns `certNo` 카드번호
+     */
+    public async giftGooglePlay(amount: number, quantity = 1): Promise<CulturelandGooglePlay[]> {
+        if (!(await this.isLogin())) throw new Error("로그인이 필요한 서비스 입니다.");
+
+        // 유저정보 가져오기 (기프트 코드 구매에 userKey 필요)
+        const userInfo = await this.getUserInfo();
+        if (!userInfo.success) {
+            return new Array(quantity).fill({
+                success: false,
+                message: userInfo.message
+            });
+        }
+
+        // 선행 페이지에서 파라미터 가져옴
+        const googlePage: string = await this.client.get("https://m.cultureland.co.kr/cpn/googleApp.do").then(res => res.data);
+
+        // 컬쳐랜드 파라미터
+        const tfsSeq = googlePage.match(/<input type="hidden" id="hidTFSSeq" name="tfsSeq" value="(\d+)" \/>/)?.[1] ?? "";
+        const clientType = googlePage.match(/<input type="hidden" name="clientType"			id="clientType"			value="(\w*)"\/>/)?.[1] ?? "MWEB";
+        const fee = googlePage.match(/<input type="hidden" name="fee"					id="fee"				value="([\d.]*)">/)?.[1] ?? "0.03";
+        const freeFeeYn = googlePage.match(/<input type="hidden" name="freeFeeYn"			id="freeFeeYn"			value="(\w*)">/)?.[1] ?? "";
+        const freefeeReaminAmt = googlePage.match(/<input type="hidden" name="freefeeReaminAmt"	id="freefeeReaminAmt"	value="([\d,.]*)">/)?.[1] ?? ""; // freeFeeRemainAmount
+        const freeFeeRate = googlePage.match(/<input type="hidden" name="freeFeeRate"			id="freeFeeRate"		value="([\d.]*)">/)?.[1] ?? "";
+        const freeFeeEvUseYN = googlePage.match(/<input type="hidden" name="freeFeeEvUseYN"		id="freeFeeEvUseYN"		value="(\w*)">/)?.[1] ?? "";
+        const eventCode = googlePage.match(/<input type="hidden" name="eventCode"			id="eventCode"			value="([^"]*)">/)?.[1] ?? "";
+        const cpnType = googlePage.match(/<input type="hidden" id="cpnType" name="cpnType" value="(\w*)"\/>/)?.[1] ?? "G";
+
+        // 페이투스 파라미터
+        const MallIP = googlePage.match(/<input type="hidden" name="MallIP" value="([\d.]*)"\/>/)?.[1] ?? "211.215.20.243";
+        const UserIP = googlePage.match(/<input type="hidden" name="UserIP" value="([\d.]*)">/)?.[1] ?? "";
+        const ediDate = googlePage.match(/<input type="hidden" name="ediDate" id="ediDate" value="(\d*)">/)?.[1] ?? "20240410165953";
+        const EncryptData = googlePage.match(/<input type="hidden" name="EncryptData" value="([^"]*)">/)?.[1] ?? "";
+        const MallReserved = googlePage.match(/<input type="hidden" name="MallReserved"  value="([^"]*)"\/>/)?.[1] ?? "";
+        const PayMethod = googlePage.match(/<input type="hidden" name="PayMethod" value="(\w*)">/)?.[1] ?? "CARD";
+        const GoodsName = googlePage.match(/<input type="hidden" name="GoodsName" id="GoodsName" value="([^"]*)"\/>/)?.[1] ?? "Google Play 기프트 코드";
+        const EncodingType = googlePage.match(/<input type="hidden" name="EncodingType" id="EncodingType" value="(\w*)">/)?.[1] ?? "utf8";
+        const TransType = googlePage.match(/<input type="hidden" name="TransType" value="(\d*)">/)?.[1] ?? "0";
+        const MID = googlePage.match(/<input type="hidden" name="MID" id="MID" value="(\d*)">/)?.[1] ?? "9010042942";
+        const SUB_ID = googlePage.match(/<input type="hidden" name="SUB_ID" (id="SUB_ID" )?value="(\d*)">/)?.[1] ?? "";
+        const ReturnURL = googlePage.match(/<input type="hidden" name="ReturnURL" value="([^"]*)">/)?.[1] ?? "https://m.cultureland.co.kr/cpn/paytusReturnUrl.do";
+        const RetryURL = googlePage.match(/<input type="hidden" name="RetryURL" value="([^"]*)">/)?.[1] ?? "";
+        const mallUserID = googlePage.match(/<input type="hidden" name="mallUserID" value="([^"]*)">/)?.[1] ?? userInfo.userKey!;
+        const BuyerName = googlePage.match(/<input type="hidden" name="BuyerName" value="([^"]*)">/)?.[1] ?? "";
+        const Moid = googlePage.match(/<input type="hidden" name="Moid" value="(\w*)">/)?.[1] ?? "";
+        const popupUrl = googlePage.match(/<input type="hidden" name=popupUrl id="popupUrl" value="([^"]*)">/)?.[1] ?? "https://pg.paytus.co.kr/pay/interfaceURL.jsp";
+        const BuyerEmail = googlePage.match(/<input type="hidden" name="BuyerEmail" id="BuyerEmail" value="([^"]*)">/)?.[1] ?? "";
+        const BuyerAddr = googlePage.match(/<input type="hidden" name="BuyerAddr" id="BuyerAddr" value="([^"]*)">/)?.[1] ?? "";
+        const merchantKey = googlePage.match(/<input type="hidden" name=merchantKey id="merchantKey" value="(\w*)">/)?.[1] ?? "e0e18e2094773e64e64fa09895fd83b4c3b1a381cb6ef72a296f7b5cd8d6c868";
+        const email = googlePage.match(/<input type="hidden" name=email id="email" value="([^"]*)" \/>/)?.[1] ?? "nomail";
+        const Email1 = googlePage.match(/<input type="hidden" name=Email1 id="Email1" value="(\w*)" \/>/)?.[1] ?? "";
+        const Email2 = googlePage.match(/<input type="hidden" name=Email2 id="Email2" value="(\w*)" \/>/)?.[1] ?? "";
+        const discount = googlePage.match(/<input type="hidden" name=discount id="discount" value="([\d.]*)">/)?.[1] ?? "0.0";
+
+        // 다날페이 파라미터
+        const cardcode = googlePage.match(/<input type="hidden" name="cardcode" id="cardcode" value="([^"]*)">/)?.[1] ?? "";
+        const Md5MallReserved = googlePage.match(/<input type="hidden" name="Md5MallReserved" id="Md5MallReserved"  value="([^"]*)"\/>/)?.[1] ?? "";
+        const orderid = googlePage.match(/<input type="hidden" name="orderid" id="orderid" value="(\w*)">/)?.[1] ?? "";
+        const itemname = googlePage.match(/<input type="hidden" name="itemname" id="itemname" value="([^"]*)">/)?.[1] ?? "Google Play 기프트 코드";
+        const useragent = googlePage.match(/<input type="hidden" name="useragent" id="useragent" value="([^"]*)">/)?.[1] ?? "WM";
+
+        // 내폰으로 전송 (본인번호 가져옴)
+        const phoneInfo: PhoneInfoResponse = await this.client.post("https://m.cultureland.co.kr/cpn/getGoogleRecvInfo.json", new URLSearchParams({
+            sendType: "LMS",
+            recvType: "M",
+            cpnType: "GOOGLE"
+        }).toString(), {
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                "Referer": "https://m.cultureland.co.kr/cpn/googleApp.do"
+            }
+        }).then(res => res.data);
+
+        if (phoneInfo.errMsg !== "정상") {
+            return new Array(quantity).fill({
+                success: false,
+                message: phoneInfo.errMsg
+            });
+        }
+
+        // 기프트 코드 구매 전 구매 내역
+        const oldGoogleHistory: GooglePlayHistoryResponse = await this.client.post("https://m.cultureland.co.kr/cpn/googleBuyHisItem.json", new URLSearchParams({
+            addDay: "0",
+            searchYear: "",
+            searchMonth: "",
+            pageSize: "20",
+            cancelType: "",
+            page: "1",
+            tabFlag: "cash",
+            inputHp: ""
+        }).toString(), {
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                "Referer": "https://m.cultureland.co.kr/cpn/googleBuyHis.do"
+            }
+        }).then(res => res.data);
+
+        const payload = [
+            [ "tfsSeq", tfsSeq ],
+            [ "clientType", clientType ],
+            [ "fee", fee ],
+            [ "feeAmount", (amount * parseFloat(fee)).toString() ],
+            [ "freefeeAmount", (amount * (parseFloat(freeFeeRate ?? "0") || 0)).toString() ],
+            [ "freeFeeYn", freeFeeYn ],
+            [ "freefeeReaminAmt", freefeeReaminAmt ],
+            [ "freeFeeRate", freeFeeRate ],
+            [ "freeFeeEvUseYN", freeFeeEvUseYN ],
+            [ "eventCode", eventCode ],
+            [ "cpnType", cpnType ],
+            [ "MallIP", MallIP ],
+            [ "UserIP", UserIP ],
+            [ "ediDate", ediDate ],
+            [ "EncryptData", EncryptData ],
+            [ "MallReserved", decodeURIComponent(MallReserved) ],
+            [ "PayMethod", PayMethod ],
+            [ "GoodsName", decodeURIComponent(GoodsName) ],
+            [ "Amt", (amount * (1 + parseFloat(fee))).toString() ],
+            [ "EncodingType", EncodingType ],
+            [ "TransType", TransType ],
+            [ "MID", MID ],
+            [ "SUB_ID", SUB_ID ],
+            [ "ReturnURL", decodeURIComponent(ReturnURL) ],
+            [ "RetryURL", decodeURIComponent(RetryURL) ],
+            [ "mallUserID", mallUserID ],
+            [ "BuyerName", decodeURIComponent(BuyerName) ],
+            [ "Moid", Moid ],
+            [ "popupUrl", decodeURIComponent(popupUrl) ],
+            [ "BuyerTel", userInfo.phone! ],
+            [ "BuyerEmail", decodeURIComponent(BuyerEmail) ],
+            [ "BuyerAddr", BuyerAddr ],
+            [ "merchantKey", merchantKey ],
+            [ "email", email ],
+            [ "Email1", Email1 ],
+            [ "Email2", Email2 ],
+            [ "discount", discount ],
+            [ "cardcode", cardcode ],
+            [ "Md5MallReserved", decodeURIComponent(Md5MallReserved) ],
+            [ "orderid", orderid ],
+            [ "itemname", decodeURIComponent(itemname) ],
+            [ "useragent", useragent ],
+            [ "sendType", "LMS" ],
+            [ "amount", amount.toString() ],
+            [ "quantity", quantity.toString() ],
+            [ "quantity", quantity.toString() ],
+            [ "rdSendType", "rdlms" ],
+            [ "chkLms", "M" ],
+            [ "recvHP", userInfo.phone! ],
+            [ "email", "" ],
+            [ "buyType", "CASH" ],
+            [ "chkAgree_paytus", "on" ]
+        ].map(kv => kv.map(encodeURIComponent).join("=")).join("&").replace(/%20/g, "+");
+
+        const sendGoogle: GooglePlayBuyResponse = await this.client.post("https://m.cultureland.co.kr/cpn/googleBuyProc.json", payload, {
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                "Referer": "https://m.cultureland.co.kr/cpn/googleApp.do"
+            }
+        }).then(res => res.data);
+
+        if (sendGoogle.errCd === "0" && sendGoogle.errMsg === "정상") {
+            // PASS
+        }
+        else if (sendGoogle.errCd == "1001") {
+            return new Array(quantity).fill({
+                success: false,
+                message: "안심금고 서비스 가입 후 Google Play 기프트 코드 구매가 가능합니다."
+            });
+        }
+        else if (sendGoogle.errCd == "1108") {
+            return new Array(quantity).fill({
+                success: false,
+                message: "현재 선택하신 상품은 일시 품절입니다. 다른 권종의 상품으로 구매해 주세요."
+            });
+        }
+        else if (sendGoogle.errCd == "-998") {
+            return new Array(quantity).fill({
+                success: false,
+                message: "전용계좌,계좌이체,무통장입금으로 컬쳐캐쉬를 충전하신 경우 안전한 서비스 이용을 위해 구매 및 선물 서비스가 제한됩니다. 자세한 문의사항은 고객센터(1577-2111)로 문의주시기 바랍니다."
+            });
+        }
+        else if (sendGoogle.pinBuyYn == "Y") {
+            return new Array(quantity).fill({
+                success: false,
+                message: "발송에 실패 하였습니다. 구매내역에서 재발송 해주세요!"
+            });
+        }
+        else if (sendGoogle.pinBuyYn == "N") {
+            return new Array(quantity).fill({
+                success: false,
+                message: `구매에 실패 하였습니다. (실패 사유 : ${sendGoogle.errCd}) 다시 구매해 주세요!`
+            });
+        }
+        else {
+            return new Array(quantity).fill({
+                success: false,
+                message: sendGoogle.errMsg.replace(/<br>/g, " ")
+            });
+        }
+
+        // 기프트 코드 구매 후 구매 내역
+        let googleHistory: GooglePlayHistoryResponse = await this.client.post("https://m.cultureland.co.kr/cpn/googleBuyHisItem.json", new URLSearchParams({
+            addDay: "0",
+            searchYear: "",
+            searchMonth: "",
+            pageSize: "20",
+            cancelType: "",
+            page: "1",
+            tabFlag: "cash",
+            inputHp: ""
+        }).toString(), {
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                "Referer": "https://m.cultureland.co.kr/cpn/googleBuyHis.do"
+            }
+        }).then(res => res.data);
+
+        // 기프트 코드 구매 내역의 수가 변할 때까지 최대 10회 반복
+        for (let i = 0; i < 10; i++) {
+            if (googleHistory.cpnVO.totalCnt !== oldGoogleHistory.cpnVO.totalCnt) break;
+
+            await new Promise(resolve => setTimeout(resolve, 1000)); // 1초 대기
+
+            googleHistory = await this.client.post("https://m.cultureland.co.kr/cpn/googleBuyHisItem.json", new URLSearchParams({
+                addDay: "0",
+                searchYear: "",
+                searchMonth: "",
+                pageSize: "20",
+                cancelType: "",
+                page: "1",
+                tabFlag: "cash",
+                inputHp: ""
+            }).toString(), {
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                    "Referer": "https://m.cultureland.co.kr/cpn/googleBuyHis.do"
+                }
+            }).then(res => res.data);
+        }
+
+        // 기프트 코드 구매 내역의 수가 변하지 않음
+        if (googleHistory.cpnVO.totalCnt === oldGoogleHistory.cpnVO.totalCnt) {
+            return new Array(quantity).fill({
+                success: false,
+                message: "구매한 기프트 코드의 정보를 가져올 수 없습니다. 입력한 수신자정보로 발송된 코드를 확인해 주세요."
+            });
+        }
+
+        // 구매 전 기프트 코드 내역과 대조
+        const googleGifts = googleHistory.list.filter(
+            history =>
+                parseInt(history.item.Amount) === amount &&
+                parseInt(history.item.FaceValue) === amount &&
+                history.item.ReceiveInfo === userInfo.phone &&
+                !oldGoogleHistory.list.find(_history => _history.item.ScrachNo === history.item.ScrachNo)
+        );
+
+        const results: CulturelandGooglePlay[] = [];
+
+        for (let i = 0; i < quantity; i++) {
+            const googleGift = googleGifts[i];
+            if (!googleGift) {
+                results.push({
+                    success: false,
+                    message: "구매한 기프트 코드의 정보를 가져올 수 없습니다. 입력한 수신자정보로 발송된 코드를 확인해 주세요."
+                });
+                continue;
+            }
+
+            results.push({
+                success: true,
+                message: "구매가 완료 되었습니다. 구매한 기프트 코드는 입력한 수신자정보로 발송되며, 기프트 코드 자동입력 기능을 통해 편리하게 사용 가능합니다.",
+                pin: googleGift.item.ScrachNo,
+                url: "https://play.google.com/redeem?code=" + googleGift.item.ScrachNo,
+                certNo: googleGift.item.PurchaseCertNo
+            });
+        }
+
+        return results;
+    }
+
+    /**
      * 안심금고 API에서 유저정보를 가져옵니다.
      * @returns `success` 유저정보 성공여부
      * @returns `message` 유저정보 메시지
@@ -755,8 +1043,23 @@ export default class Cultureland {
             };
         }
 
-        // 로그인을 시도한 아이피 대역이 컬쳐랜드 정책에 의해 차단된 경우
-        if (loginRequest.headers.location === "/cmp/authConfirm.do") throw new Error("컬쳐랜드 로그인 정책에 따라 로그인이 제한되었습니다. (제한코드 23)");
+        // 컬쳐랜드 로그인 정책에 따라 로그인이 제한된 경우
+        if (loginRequest.headers.location === "/cmp/authConfirm.do") {
+            const errorPage = await this.client.get("https://m.cultureland.co.kr" + loginRequest.headers.location).then(res => res.data).catch(() => null);
+            const errorCode = errorPage ? errorPage.match(/var errCode = "(\d+)";/)?.[1] : null;
+
+            if (errorCode) {
+                return {
+                    success: false,
+                    message: `컬쳐랜드 로그인 정책에 따라 로그인이 제한되었습니다. (제한코드 ${errorCode})`
+                };
+            }
+
+            return {
+                success: false,
+                message: "컬쳐랜드 로그인 정책에 따라 로그인이 제한되었습니다."
+            };
+        }
 
         const keepLoginConfigCookie = loginRequest.headers["set-cookie"]?.find(cookie => cookie.startsWith("KeepLoginConfig="));
 
@@ -765,7 +1068,7 @@ export default class Cultureland {
             return {
                 success: true,
                 message: "성공",
-                keepLoginConfig
+                keepLoginConfig: decodeURIComponent(keepLoginConfig)
             };
         }
         else {
@@ -787,7 +1090,10 @@ export default class Cultureland {
      * @returns `keepLoginConfig` 로그인 유지 쿠키
      */
     public async loginWithKeepLoginConfig(keepLoginConfig: string, browserId?: string, macAddress?: string) {
-        await this.cookieJar.setCookie("KeepLoginConfig=" + keepLoginConfig, "https://m.cultureland.co.kr");
+        await this.cookieJar.setCookie(
+            new Cookie({ key: "KeepLoginConfig", value: encodeURIComponent(keepLoginConfig) }),
+            "https://m.cultureland.co.kr"
+        );
 
         const loginMain: string = await this.client.get("https://m.cultureland.co.kr/mmb/loginMain.do", {
             headers: {
@@ -845,7 +1151,7 @@ export default class Cultureland {
                 "Referer": "https://m.cultureland.co.kr/mmb/loginMain.do"
             },
             maxRedirects: 0,
-            validateStatus: status => status === 302
+            validateStatus: status => status === 200 || status === 302
         }).catch(() => null);
 
         if (!loginRequest) {
@@ -855,8 +1161,23 @@ export default class Cultureland {
             };
         }
 
-        // 로그인을 시도한 아이피 대역이 컬쳐랜드 정책에 의해 차단된 경우
-        if (loginRequest.headers.location === "/cmp/authConfirm.do") throw new Error("컬쳐랜드 로그인 정책에 따라 로그인이 제한되었습니다. (제한코드 23)");
+        // 컬쳐랜드 로그인 정책에 따라 로그인이 제한된 경우
+        if (loginRequest.headers.location === "/cmp/authConfirm.do") {
+            const errorPage = await this.client.get("https://m.cultureland.co.kr" + loginRequest.headers.location).then(res => res.data).catch(() => null);
+            const errorCode = errorPage ? errorPage.match(/var errCode = "(\d+)";/)?.[1] : null;
+
+            if (errorCode) {
+                return {
+                    success: false,
+                    message: `컬쳐랜드 로그인 정책에 따라 로그인이 제한되었습니다. (제한코드 ${errorCode})`
+                };
+            }
+
+            return {
+                success: false,
+                message: "컬쳐랜드 로그인 정책에 따라 로그인이 제한되었습니다."
+            };
+        }
 
         const keepLoginConfigCookie = loginRequest.headers["set-cookie"]?.find(cookie => cookie.startsWith("KeepLoginConfig="));
 
@@ -866,7 +1187,7 @@ export default class Cultureland {
                 success: true,
                 message: "성공",
                 userId,
-                keepLoginConfig
+                keepLoginConfig: decodeURIComponent(keepLoginConfig)
             };
         }
         else {

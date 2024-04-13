@@ -194,6 +194,160 @@ export interface CulturelandChangeSmileCash {
     message: string;
 }
 
+export interface CulturelandGooglePlay {
+    success: boolean;
+    message: string;
+    pin?: string;
+    url?: string;
+    certNo?: string;
+}
+
+export interface GooglePlayBuyResponse {
+    errCd: string;
+    pinBuyYn: "Y" | "N";
+    errMsg: string;
+}
+
+export interface GooglePlayHistoryResponse {
+    list: {
+        item: {
+            fee: string;
+            reSendState: "Y" | "N";
+            cnclState: "Y" | "N";
+            strLevyDate: string;
+            CertGroup: string;
+            ContentsName: string;
+            PurchaseCertNo: string;
+            LevyTime: string;
+            strMaskScrachNo: string;
+            payType: "컬쳐캐쉬" | "신용카드";
+            strRcvInfo: string;
+            ReceiveInfo: string;
+            culturelandGiftNo: string;
+            ReSend: string;
+            culturelandGiftMaskNo: string;
+            ExSubMemberCode: string;
+            certGroup: string;
+            FaceValue: string;
+            strLevyTime: string;
+            levyDateTime: string;
+            ContentsCode: "GOOGLE";
+            Amount: string;
+            ControlCode: string;
+            PinSaleControlCode: string;
+            cultureGiftFaceValue: string;
+            RowNumber: string;
+            CouponCode: string;
+            GCSubMemberCode: string;
+            CancelDate: string;
+            ExMemberCode: string;
+            State: string;
+            SubMemberCode: string;
+            googleDcUserHpCheck: "Y" | "N";
+            MemberControlCode: string;
+            CertNo: string;
+            ScrachNo: string;
+            LevyDate: string;
+            cnclLmtDate: string;
+        }
+    }[];
+    cpnVO: {
+        buyType: null,
+        cpgm: null;
+        couponNm: null;
+        contentsCd: null;
+        alertAmt: null;
+        couponAmt: null;
+        saleAmt: null;
+        comments: null;
+        agreeMsg: null;
+        serviceStatus: null;
+        tfsSeq: null;
+        hpNo1: null;
+        hpNo2: null;
+        hpNo3: null;
+        recvHP: null;
+        email1: null;
+        email2: null;
+        recvEmail: null;
+        sendType: null;
+        buyCoupon: null;
+        direction: null;
+        couponCode: null;
+        memberCd: null;
+        pinType: null;
+        agencyNm: null;
+        faceval: null;
+        safeBalance: null;
+        hp_no1: null;
+        hp_no2: null;
+        hp_no3: null;
+        phoneNumber: null;
+        prodNo: null;
+        tmpCLState: null;
+        res_code: null;
+        datasize: null;
+        salePercent: null;
+        saleBuyLimit: null;
+        isSale: 0;
+        balance: 0;
+        safeAmt: 0;
+        amount: 0;
+        arrCouponAmt: null;
+        arrSaleAmt: null;
+        arrSalePer: null;
+        arrBuyCoupon: null;
+        arrAlertAmt: null;
+        arrCouponCode: null;
+        arrCouponName: null;
+        arrComments: null;
+        couponCodeType: null;
+        remainMAmount: null;
+        remainDAmount: null;
+        remainMAmountUser: null;
+        remainDAmountUser: null;
+        maxMAmountUser: null;
+        maxDAmountUser: null;
+        feeType: null;
+        quantity: 0;
+        page: number;
+        pageSize: number;
+        buyCnt: number;
+        totalCnt: number;
+        feeAmount: 0;
+        fee: "0";
+        isLastPageYn: "Y" | "N";
+        controlCd: null;
+        subMemberCd: null;
+        pinSaleControlCd: null;
+        recvInfo: null;
+        code1: null;
+        code2: null;
+        code3: null;
+        code4: null;
+        code5: null;
+        recvType: null;
+        couponContent: null;
+        oriAmount: null;
+        isCulSale: 0;
+        deliveryFee: 0;
+        deliveryType: "";
+        recvNm: "";
+        recvPost: "";
+        recvAddr1: "";
+        recvAddr2: "";
+        envelopeQty: 0;
+        billCheck: "";
+        isEvnFee: 0;
+        evnFee: "0";
+        evnFeeAmount: 0;
+        freefeeAmount: 0;
+        eventCode: null;
+        cpnType: "";
+        salePer: null;
+    }
+}
+
 export interface UserInfoResponse {
     Del_Yn: "Y" | "N";
     callUrl: string;
