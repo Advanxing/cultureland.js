@@ -1,5 +1,5 @@
 import axios from "axios";
-import { CreateTask, TaskResult } from "./types";
+import { CreateTask, TaskResult } from "./types.js";
 
 export default class CapMonster {
     constructor(public apiKey: string) { }

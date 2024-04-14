@@ -1,4 +1,3 @@
 node_modules/
+package.json
 *.js
-m2.ts
-dist/

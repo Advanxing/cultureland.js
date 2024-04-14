@@ -1,11 +1,49 @@
+/**
+ * 타입 짬통 파일
+ */
+
+import Pin from "./pin.js";
+
 export interface KeyStringValueStringObject {
     [key: string]: string;
 }
 
+export interface VoucherResponse {
+    resultCd: string;
+    resultOther: string;
+    resultMsg: {
+        item: {
+            LevyTime: string;
+            GCSubMemberName: string;
+            State: string;
+            levyamount: string;
+            Store_name: string;
+            LevyDate: string;
+        }
+    }[]
+}
+
+export type VoucherResultOther = {
+    FaceValue: number,
+    ExpiryDate: string,
+    RegDate: string,
+    State: string,
+    CertNo: string,
+    Balance: number
+}[];
+
 export interface CulturelandVoucher {
-    success: boolean;
-    message: string;
-    data?: any;
+    amount: number;
+    balance: number;
+    certNo: string;
+    createdDate: string;
+    expiryDate: string;
+    spendHistory: {
+        title: string;
+        merchantName: string;
+        amount: number;
+        timestamp: number;
+    }[];
 }
 
 export interface BalanceResponse {
@@ -26,17 +64,14 @@ export interface BalanceResponse {
 }
 
 export interface CulturelandBalance {
-    success: boolean;
-    message: string;
     balance: number;
     safeBalance: number;
     totalBalance: number;
 }
 
 export interface CulturelandCharge {
-    success: boolean;
     message: string;
-    amount?: number;
+    amount: number;
 }
 
 export interface PhoneInfoResponse {
@@ -52,10 +87,8 @@ export interface PhoneInfoResponse {
 }
 
 export interface CulturelandGift {
-    success: boolean;
-    message: string;
-    pin?: string;
-    url?: string;
+    pin: Pin;
+    url: string;
 }
 
 export interface GiftLimitResponse {
@@ -168,10 +201,8 @@ export interface GiftLimitResponse {
 }
 
 export interface CulturelandGiftLimit {
-    success: boolean;
-    message: string;
-    remain?: number;
-    limit?: number;
+    remain: number;
+    limit: number;
 }
 
 export interface ChangeCoupangCashResponse {
@@ -180,8 +211,7 @@ export interface ChangeCoupangCashResponse {
 }
 
 export interface CulturelandChangeCoupangCash {
-    success: boolean;
-    message: string;
+    amount: number;
 }
 
 export interface ChangeSmileCashResponse {
@@ -190,16 +220,13 @@ export interface ChangeSmileCashResponse {
 }
 
 export interface CulturelandChangeSmileCash {
-    success: boolean;
-    message: string;
+    amount: number;
 }
 
 export interface CulturelandGooglePlay {
-    success: boolean;
-    message: string;
-    pin?: string;
-    url?: string;
-    certNo?: string;
+    pin: string;
+    url: string;
+    certNo: string;
 }
 
 export interface GooglePlayBuyResponse {
@@ -380,22 +407,18 @@ export interface UserInfoResponse {
 }
 
 export interface CulturelandUser {
-    success: boolean;
-    message: string;
-    phone?: string;
-    safeLevel?: number;
-    safePassword?: boolean;
-    registerDate?: string;
-    userId?: string;
-    userKey?: string;
-    userIp?: string;
-    index?: number;
-    category?: string;
+    phone: string;
+    safeLevel: number;
+    safePassword: boolean;
+    registerDate: number;
+    userId: string;
+    userKey: string;
+    userIp: string;
+    index: number;
+    category: string;
 }
 
 export interface CulturelandMember {
-    success: boolean;
-    message: "성공" | "멤버 정보를 가져올 수 없습니다.";
     id?: string;
     name?: string;
     verificationLevel?: string;
@@ -403,38 +426,41 @@ export interface CulturelandMember {
 
 export type CashLogsResponse = {
     item: {
-        accDate: string;
-        memberCode: string;
-        outAmount: string;
-        balance: string;
-        inAmount: string;
-        NUM: string;
-        Note: string;
-        accTime: string;
-        memberName: string;
-        accType: string;
-        safeAmount: string;
-    };
-}[]
+        accDate: string,
+        memberCode: string,
+        outAmount: string,
+        balance: string,
+        inAmount: string,
+        NUM: string,
+        Note: string,
+        accTime: string,
+        memberName: string,
+        accType: string,
+        safeAmount: string
+    }
+}[];
 
-export interface CulturelandCashLogs {
-    success: boolean;
-    message: string;
-    logs: {
-        title: string;
-        merchantCode: string;
-        merchantName: string;
-        amount: number;
-        balance: number;
-        spendType: string;
-        timestamp: number;
-    }[]
+export type CulturelandCashLogs = {
+    title: string,
+    merchantCode: string,
+    merchantName: string,
+    amount: number,
+    balance: number,
+    spendType: string,
+    timestamp: number
+}[];
+
+export interface CulturelandLogin {
+    keepLoginInfo?: string;
+    browserId: string;
+    macAddress: string;
 }
 
-export interface CulturelandVoucherFormat {
-    success: boolean;
-    message: string;
-    parts?: [string, string, string, string];
+export interface CulturelandLoginWithKeepLoginInfo {
+    userId: string;
+    keepLoginInfo?: string;
+    browserId: string;
+    macAddress: string;
 }
 
 export interface CreateTask {
