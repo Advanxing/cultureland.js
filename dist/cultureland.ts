@@ -4,7 +4,7 @@ import crypto from "crypto";
 
 
 /* NPM 모듈 import */
-import axios, { AxiosInstance, AxiosError } from "axios";
+import axios, { AxiosInstance, AxiosError, AxiosProxyConfig } from "axios";
 import { HttpCookieAgent, HttpsCookieAgent } from "http-cookie-agent/http";
 import { parse } from "node-html-parser";
 import { Cookie, CookieJar } from "tough-cookie";
@@ -21,19 +21,27 @@ import CulturelandError from "./errors.js";
 
 
 /* 상수 선언 */
-const version = "2.0.0";
+const version = "2.1.0";
 /* 상수 선언 */
 
 
-/**
- * 컬쳐랜드 모바일웹을 자동화해주는 비공식 라이브러리입니다.
- * 로그인, 잔액조회, 충전, 선물, 전환 등 자주 사용되는 대부분의 기능을 지원합니다.
- */
 export default class Cultureland {
     cookieJar: CookieJar;
     client: AxiosInstance;
+    proxy?: AxiosProxyConfig;
 
-    constructor() {
+    /**
+     * 컬쳐랜드 모바일웹을 자동화해주는 비공식 라이브러리입니다.
+     * 로그인, 잔액조회, 충전, 선물, 전환 등 자주 사용되는 대부분의 기능을 지원합니다.
+     * @param proxy 로그인 시 사용할 프록시
+     * @example
+     * // 프록시 미사용
+     * const client = new Cultureland();
+     * 
+     * // 프록시 사용
+     * const proxiedClient = new Cultureland({ host: "localhost", port: 3000 });
+     */
+    constructor(proxy?: AxiosProxyConfig) {
         this.cookieJar = new CookieJar();
         this.client = axios.create({
             headers: {
@@ -42,6 +50,7 @@ export default class Cultureland {
             httpAgent: new HttpCookieAgent({ cookies: { jar: this.cookieJar } }),
             httpsAgent: new HttpsCookieAgent({ cookies: { jar: this.cookieJar } })
         });
+        this.proxy = proxy; // 로그인 시에만 프록시 사용
         this.client.interceptors.response.use(res => res, err => err); // AxiosError 발생시 throw하는 대신 resolve하도록 변경 (더 나은 오류 핸들링)
     }
 
@@ -50,6 +59,8 @@ export default class Cultureland {
      * 로그인이 필요합니다.
      * 계정당 일일 조회수 10회 한도가 있습니다.
      * @param pin 상품권의 핀번호
+     * @example
+     * await client.checkVoucher(new Pin("3110-0123-4567-8901"));
      * @returns `amount`: number - 상품권의 금액
      * @returns `balance`: number - 상품권의 잔액
      * @returns `certNo`: string - 상품권의 발행번호 (인증번호)
@@ -133,6 +144,8 @@ export default class Cultureland {
 
     /**
      * 컬쳐랜드 계정의 컬쳐캐쉬 잔액을 가져옵니다.
+     * @example
+     * await client.getBalance();
      * @returns `balance`: number - 사용 가능 금액
      * @returns `safeBalance`: number - 보관중인 금액 (안심금고)
      * @returns `totalBalance`: number - 총 잔액 (사용 가능 금액 + 보관중인 금액)
@@ -165,6 +178,15 @@ export default class Cultureland {
      * 컬쳐랜드상품권(모바일문화상품권) 및 문화상품권(18자리)을 컬쳐캐쉬로 충전합니다.
      * 지류/온라인문화상품권(18자리)은 2022.12.31 이전 발행 건만 충전 가능합니다.
      * @param pins 상품권(들)의 핀번호
+     * @example
+     * // 한 개의 핀번호 충전
+     * await client.charge(new Pin("3110-0123-4567-8901"));
+     * 
+     * // 여러개의 핀번호 충전
+     * await client.charge([
+     *     new Pin("3110-0123-4567-8901"),
+     *     new Pin("3110-0123-4567-8901")
+     * ]);
      * @returns `message`: string - 성공 여부 메시지 | `충전 완료`, `상품권지갑 보관`, `잔액이 0원인 상품권`, `상품권 번호 불일치`
      * @returns `amount`: number - 충전 금액
      */
@@ -385,6 +407,9 @@ export default class Cultureland {
      * 컬쳐캐쉬를 사용해 컬쳐랜드상품권(모바일문화상품권)을 본인 번호로 선물합니다.
      * @param amount 구매 금액 (최소 1천원부터 최대 5만원까지 100원 단위로 입력 가능)
      * @param quantity 구매 수량 (최대 5개)
+     * @example
+     * // 5000원권 1장을 나에게 선물
+     * await client.gift(5000, 1);
      * @returns `pin`: Pin - 선물 바코드 번호
      * @returns `url`: string - 선물 바코드 URL
      */
@@ -505,6 +530,8 @@ export default class Cultureland {
 
     /**
      * 선물하기 API에서 선물 한도를 가져옵니다.
+     * @example
+     * await client.getGiftLimit();
      * @returns `remain`: number - 잔여 선물 한도
      * @returns `limit`: number - 최대 선물 한도
      */
@@ -537,10 +564,11 @@ export default class Cultureland {
      * 고객 부담 전환 수수료 6% 차감됩니다. (전환 비율 1:0.94)
      * 일 최대 10회 전환 가능합니다.
      * @param amount 전환 금액 (최소 1천원부터 월 최대 10만원까지 100원 단위로 입력 가능)
-     * @returns `amount`: number - (전환 수수료 6%가 차감된) 전환된 금액
      * @example
-     * const coupangCash = await changeCoupangCash(10000);
+     * // 컬쳐캐쉬 10000원 차감 & 쿠팡캐시 9400원 충전
+     * const coupangCash = await client.changeCoupangCash(10000);
      * coupangCash.amount === 9400; // true
+     * @returns `amount`: number - (전환 수수료 6%가 차감된) 전환된 금액
      */
     async changeCoupangCash(amount: number): Promise<CulturelandChangeCoupangCash | CulturelandError> {
         if (!(await this.isLogin())) throw new CulturelandError("LoginRequiredError", "로그인이 필요한 서비스 입니다.");
@@ -605,10 +633,11 @@ export default class Cultureland {
      * 휴대폰본인인증회원만 이용 가능합니다.
      * 고객 부담 전환 수수료 5% 과금됩니다. (전환 비율 1.05:1)
      * @param amount 전환 금액 (최소 1천원부터 월 최대 200만원까지 100원 단위로 입력 가능)
-     * @returns `amount`: number - (전환 수수료 5%가 과금된) 과금된 금액
      * @example
-     * const smileCash = await changeSmileCash(10000);
+     * // 컬쳐캐쉬 10500원 차감 & 스마일캐시 10000원 충전
+     * const smileCash = await client.changeSmileCash(10000);
      * smileCash.amount === 10500; // true
+     * @returns `amount`: number - (전환 수수료 5%가 과금된) 과금된 금액
      */
     async changeSmileCash(amount: number): Promise<CulturelandChangeSmileCash | CulturelandError> {
         if (!(await this.isLogin())) throw new CulturelandError("LoginRequiredError", "로그인이 필요한 서비스 입니다.");
@@ -670,8 +699,12 @@ export default class Cultureland {
     /**
      * 컬쳐캐쉬를 사용해 Google Play 기프트 코드를 본인 번호로 구매합니다.
      * 안심금고가 활성화되어 있어야 합니다.
+     * 구매 금액의 3% 수수료가 발생됩니다. (전환 비율 1.03:1)
      * @param amount 구매 금액 (5천원, 1만원, 1만5천원, 3만원, 5만원, 10만원, 15만원, 20만원)
      * @param quantity 구매 수량 (최대 10개)
+     * @example
+     * // 10000원권 1장을 구매하여 나에게 전송, 컬쳐캐쉬 10300원 차감
+     * await client.giftGooglePlay(10000, 1);
      * @returns `pin`: string - 기프트 코드 번호
      * @returns `url`: string - 자동 입력 URL
      * @returns `certNo`: string - 카드번호
@@ -969,6 +1002,8 @@ export default class Cultureland {
 
     /**
      * 안심금고 API에서 유저 정보를 가져옵니다.
+     * @example
+     * await client.getUserInfo();
      * @returns `phone`: string - 휴대폰 번호
      * @returns `safeLevel`: number - 안심금고 레벨
      * @returns `safePassword`: boolean - 안심금고 비밀번호 여부
@@ -1011,6 +1046,8 @@ export default class Cultureland {
 
     /**
      * 내정보 페이지에서 멤버 정보를 가져옵니다.
+     * @example
+     * await client.getMemberInfo();
      * @returns `id`: string - 컬쳐랜드 ID
      * @returns `name`: string - 멤버의 이름 | `홍*동`
      * @returns `verificationLevel`: string - 멤버의 인증 등급 | `본인인증`
@@ -1042,8 +1079,11 @@ export default class Cultureland {
     /**
      * 컬쳐캐쉬 충전 / 사용 내역을 가져옵니다.
      * @param days 조회 일수
-     * @param pageSize 한 페이지에 담길 로그 수 (default: 20)
+     * @param pageSize 한 페이지에 담길 내역 수 (default: 20)
      * @param page 페이지 (default: 1)
+     * @example
+     * // 최근 30일간의 내역 중 1페이지의 내역
+     * await client.getCultureCashLogs(30, 20, 1);
      * @returns `[].title`: string - 내역 제목
      * @returns `[].merchantCode`: string - 사용 가맹점 코드
      * @returns `[].merchantName`: string - 사용 가맹점 이름
@@ -1084,6 +1124,8 @@ export default class Cultureland {
 
     /**
      * 현재 세션이 컬쳐랜드에 로그인되어 있는지 확인합니다.
+     * @example
+     * await client.isLogin();
      * @returns 로그인 여부
      */
     async isLogin() {
@@ -1103,6 +1145,8 @@ export default class Cultureland {
      * @param captchaKey CapMonster API 키 (로그인 보안 그림 인증시 필요)
      * @param browserId 브라우저 아이디 `/assets/js/egovframework/com/cland/was/mmb/loginMain.js?version=1.0` L19
      * @param macAddress 임의의 MAC 주소 `/assets/js/egovframework/com/cland/was/mmb/loginMain.js?version=1.0` L28
+     * @example
+     * await client.login("test1234", "test1234!");
      * @returns `keepLoginInfo`: string - 로그인 유지 정보
      * @returns `browserId`: string - 브라우저 아이디
      * @returns `macAddress`: string - 임의의 MAC 주소
@@ -1190,7 +1234,8 @@ export default class Cultureland {
                 "Referer": "https://m.cultureland.co.kr/mmb/loginMain.do"
             },
             maxRedirects: 0,
-            validateStatus: status => status === 200 || status === 302
+            validateStatus: status => status === 200 || status === 302,
+            proxy: this.proxy ?? false
         });
         if (loginRequest instanceof AxiosError) {
             return new CulturelandError("AxiosError", "POST /mmb/loginProcess.do 요청에 실패하였습니다.", loginRequest);
@@ -1247,6 +1292,11 @@ export default class Cultureland {
      * @param keepLoginInfo 로그인 유지 정보 `keepLoginConfig`
      * @param browserId 브라우저 아이디 `/assets/js/egovframework/com/cland/was/mmb/loginMain.js?version=1.0` L19
      * @param macAddress 임의의 MAC 주소 `/assets/js/egovframework/com/cland/was/mmb/loginMain.js?version=1.0` L28
+     * @example
+     * const keepLoginInfo = await cookieStore.get("KeepLoginConfig")
+     *     .then(cookie => decodeURIComponent(cookie.value));
+     * 
+     * await client.loginWithKeepLoginInfo(keepLoginInfo);
      * @returns `userId` 컬쳐랜드 ID
      * @returns `keepLoginInfo`?: string - 로그인 유지 쿠키
      * @returns `browserId`: string - 브라우저 아이디
@@ -1326,7 +1376,8 @@ export default class Cultureland {
                 "Referer": "https://m.cultureland.co.kr/mmb/loginMain.do"
             },
             maxRedirects: 0,
-            validateStatus: status => status === 200 || status === 302
+            validateStatus: status => status === 200 || status === 302,
+            proxy: this.proxy ?? false
         });
         if (loginRequest instanceof AxiosError) {
             return new CulturelandError("AxiosError", "POST /mmb/loginProcess.do 요청에 실패하였습니다.", loginRequest);
