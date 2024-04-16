@@ -21,7 +21,7 @@ import CulturelandError from "./errors.js";
 
 
 /* 상수 선언 */
-const version = "2.1.0";
+const version = "2.1.1";
 /* 상수 선언 */
 
 
