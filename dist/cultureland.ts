@@ -45,7 +45,7 @@ export default class Cultureland {
         this.cookieJar = new CookieJar();
         this.client = axios.create({
             headers: {
-                "User-Agent": `Cultureland-API/${version} (+https://github.com/DollarNoob/Cultureland-API)`
+                "User-Agent": `cultureland.js/${version} (+https://github.com/DollarNoob/cultureland.js)`
             },
             httpAgent: new HttpCookieAgent({ cookies: { jar: this.cookieJar } }),
             httpsAgent: new HttpsCookieAgent({ cookies: { jar: this.cookieJar } })
