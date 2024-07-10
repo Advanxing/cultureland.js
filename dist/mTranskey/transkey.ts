@@ -1,14 +1,23 @@
 import axios from "axios";
 import { HttpCookieAgent, HttpsCookieAgent } from "http-cookie-agent/http";
 import { CookieJar } from "tough-cookie";
-import Crypto from "./crypto.js";
-import Keypad from "./keypad.js";
+import Crypto from "./Crypto.js";
+import Keypad from "./Keypad.js";
 import { ServletData } from "./types.js";
+import { generateRandomHex, generateRandomInt, generateRandomKey } from "./utils.js";
 
-export default class mTransKey {
-    public crypto: Crypto;
+export class mTransKey {
+    public sessionKey: number[];
+    public transkeyUuid: string;
+    public genSessionKey: string;
+    public encryptedSessionKey: string;
+    public allocationIndex: number;
     public constructor(public cookieJar: CookieJar) {
-        this.crypto = new Crypto();
+        this.transkeyUuid = Crypto.hashString("sha256", generateRandomHex(50));
+        this.genSessionKey = generateRandomKey(128);
+        this.sessionKey = new Array(16).fill(null).map((_, i) => parseInt(this.genSessionKey.charAt(i), 16));
+        this.encryptedSessionKey = Crypto.phpbb_encrypt2048(this.genSessionKey, Crypto.publicKey[0], Crypto.publicKey[1]);
+        this.allocationIndex = generateRandomInt();
     }
 
     /**
@@ -37,8 +46,8 @@ export default class mTransKey {
         // keyInfo (키 좌표)
         const keyPositions: string = await axios.post("https://m.cultureland.co.kr/transkeyServlet", new URLSearchParams({
             "op": "getKeyInfo",
-            "key": this.crypto.encSessionKey,
-            "transkeyUuid": this.crypto.transkeyUuid,
+            "key": this.encryptedSessionKey,
+            "transkeyUuid": this.transkeyUuid,
             "useCert": "true",
             "TK_requestToken": requestToken,
             "mode": "Mobile"
@@ -89,13 +98,14 @@ export default class mTransKey {
      */
     public createKeypad(servletData: ServletData, keyboardType: "qwerty" | "number", name: string, inputName: string, fieldType = "password") {
         return new Keypad(
+            this,
             servletData,
-            this.cookieJar,
             keyboardType,
             name,
             inputName,
-            fieldType,
-            this.crypto
+            fieldType
         );
     }
 }
+
+export default mTransKey;

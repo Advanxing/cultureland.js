@@ -2,7 +2,7 @@
  * 핀번호를 관리하는 클래스입니다.
  * 핀번호 포맷팅에 사용됩니다.
  */
-export default class Pin {
+export class Pin {
     private _parts: [string, string, string, string] | null;
 
     /**
@@ -10,7 +10,7 @@ export default class Pin {
      * 핀번호가 유효하지 않은 경우 parts가 null을 반환합니다.
      * @param pin 상품권의 핀번호
      */
-    constructor(pin: string) {
+    public constructor(pin: string) {
         this._parts = Pin.format(pin) || null;
     }
 
@@ -21,13 +21,13 @@ export default class Pin {
      * @returns `false` - 핀번호가 유효하지 않음
      * @returns `string[]` - 핀번호를 4자리씩 끊은 배열 | `["3110", "0123", "4567", "8901"]`
      */
-    static format(pin: string): [string, string, string, string] | false {
+    public static format(pin: string): [string, string, string, string] | false {
         const pinMatches = pin.match(/(\d{4})\D*(\d{4})\D*(\d{4})\D*(\d{6}|\d{4})/);
         if (!pinMatches) { // 핀번호 regex에 맞지 않는다면 검증 실패
             return false;
         }
 
-        const parts: [string, string, string, string] = [ pinMatches[1], pinMatches[2], pinMatches[3], pinMatches[4] ];
+        const parts: [string, string, string, string] = [pinMatches[1], pinMatches[2], pinMatches[3], pinMatches[4]];
         if (parts[0].startsWith("416") || parts[0].startsWith("4180")) { // 핀번호가 416(컬쳐랜드상품권 구권) 또는 4180(컬쳐랜드상품권 신권)으로 시작한다면
             if (parts[3].length !== 4) { // 마지막 핀번호 부분이 4자리가 아니라면 검증 실패
                 return false;
@@ -59,7 +59,7 @@ export default class Pin {
      * @example
      * ["3110", "0123", "4567", "8901"]
      */
-    get parts(): [string, string, string, string] | null {
+    public get parts(): [string, string, string, string] | null {
         return this._parts;
     }
 
@@ -68,7 +68,9 @@ export default class Pin {
      * @example
      * "3110-0123-4567-8901"
      */
-    toString(): string {
+    public toString(): string {
         return this.parts?.join("-") || "null";
     }
 }
+
+export default Pin;

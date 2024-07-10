@@ -1,34 +1,23 @@
-﻿/* NodeJS 내장 모듈 import */
+﻿import axios, { AxiosError, AxiosProxyConfig } from "axios";
 import crypto from "crypto";
-/* NodeJS 내장 모듈 import */
-
-
-/* NPM 모듈 import */
-import axios, { AxiosInstance, AxiosError, AxiosProxyConfig } from "axios";
 import { HttpCookieAgent, HttpsCookieAgent } from "http-cookie-agent/http";
 import { parse } from "node-html-parser";
 import { Cookie, CookieJar } from "tough-cookie";
-/* NPM 모듈 import */
+import pkg from "../package.json";
+import CulturelandError from "./Error.js";
+import mTransKey from "./mTranskey/Transkey.js";
+import Pin from "./Pin.js";
+import { BalanceResponse, CashLogsResponse, ChangeCoupangCashResponse, ChangeSmileCashResponse, CulturelandBalance, CulturelandCashLogs, CulturelandChangeCoupangCash, CulturelandChangeSmileCash, CulturelandCharge, CulturelandGift, CulturelandGiftLimit, CulturelandGooglePlay, CulturelandLogin, CulturelandLoginWithKeepLoginInfo, CulturelandMember, CulturelandUser, CulturelandVoucher, GiftLimitResponse, GooglePlayBuyResponse, GooglePlayHistoryResponse, KeyStringValueStringObject, PhoneInfoResponse, UserInfoResponse, VoucherResponse, VoucherResultOther } from "./types.js";
 
-
-/* 파일 import */
-import mTransKey from "./mTranskey/transkey.js";
-import CapMonster from "./capmonster.js";
-import Pin from "./pin.js";
-import { KeyStringValueStringObject, VoucherResponse, VoucherResultOther, CulturelandVoucher, BalanceResponse, CulturelandBalance, PhoneInfoResponse, CulturelandCharge, CulturelandGift, GiftLimitResponse, CulturelandGiftLimit, ChangeCoupangCashResponse, CulturelandChangeCoupangCash, ChangeSmileCashResponse, CulturelandChangeSmileCash, CulturelandGooglePlay, GooglePlayBuyResponse, GooglePlayHistoryResponse, UserInfoResponse, CulturelandUser, CulturelandMember, CashLogsResponse, CulturelandCashLogs, CulturelandLogin, CulturelandLoginWithKeepLoginInfo } from "./types.js";
-import CulturelandError from "./errors.js";
-/* 파일 import */
-
-
-/* 상수 선언 */
-const version = "2.1.1";
-/* 상수 선언 */
-
-
-export default class Cultureland {
-    cookieJar: CookieJar;
-    client: AxiosInstance;
-    proxy?: AxiosProxyConfig;
+export class Cultureland {
+    public cookieJar = new CookieJar();
+    public client = axios.create({
+        headers: {
+            "User-Agent": `cultureland.js/${pkg.version} (+${pkg.repository.url})`
+        },
+        httpAgent: new HttpCookieAgent({ cookies: { jar: this.cookieJar } }),
+        httpsAgent: new HttpsCookieAgent({ cookies: { jar: this.cookieJar } })
+    });
 
     /**
      * 컬쳐랜드 모바일웹을 자동화해주는 비공식 라이브러리입니다.
@@ -41,18 +30,7 @@ export default class Cultureland {
      * // 프록시 사용
      * const proxiedClient = new Cultureland({ host: "localhost", port: 3000 });
      */
-    constructor(proxy?: AxiosProxyConfig) {
-        this.cookieJar = new CookieJar();
-        this.client = axios.create({
-            headers: {
-                "User-Agent": `cultureland.js/${version} (+https://github.com/DollarNoob/cultureland.js)`
-            },
-            httpAgent: new HttpCookieAgent({ cookies: { jar: this.cookieJar } }),
-            httpsAgent: new HttpsCookieAgent({ cookies: { jar: this.cookieJar } })
-        });
-        this.proxy = proxy; // 로그인 시에만 프록시 사용
-        this.client.interceptors.response.use(res => res, err => err); // AxiosError 발생시 throw하는 대신 resolve하도록 변경 (더 나은 오류 핸들링)
-    }
+    public constructor(public proxy?: AxiosProxyConfig) { }
 
     /**
      * 컬쳐랜드상품권(모바일문화상품권, 16자리)의 정보를 가져옵니다.
@@ -71,13 +49,13 @@ export default class Cultureland {
      * @returns `spendHistory[].amount`: number - 사용 금액
      * @returns `spendHistory[].timestamp`: number - 내역 시간
      */
-    async checkVoucher(pin: Pin): Promise<CulturelandVoucher | CulturelandError> {
+    public async checkVoucher(pin: Pin): Promise<CulturelandVoucher> {
         if (!(await this.isLogin())) throw new CulturelandError("LoginRequiredError", "로그인이 필요한 서비스 입니다.");
 
         // 핀번호가 유효하지 않거나 41로 시작하지 않거나 311~319로 시작하지 않는다면 리턴
         // /assets/js/egovframework/com/cland/was/util/ClandCmmUtl.js L1281
-        if (pin.parts === null || !(pin.parts[0].startsWith("41") || /^31[1-9]/.test(pin.parts[0]))) {
-            return new CulturelandError("InvalidPinError", "정확한 모바일 상품권 번호를 입력하세요.");
+        if (!pin.parts || !(pin.parts[0].startsWith("41") || /^31[1-9]/.test(pin.parts[0]))) {
+            throw new CulturelandError("InvalidPinError", "정확한 모바일 상품권 번호를 입력하세요.");
         }
 
         const transKey = new mTransKey(this.cookieJar);
@@ -91,14 +69,14 @@ export default class Cultureland {
         // culturelandInput 실제로 같은 키 4개가 사용되어 그대로 반영하였습니다.
         const requestBody = new URLSearchParams({
             "culturelandNo": pin.parts[0] + pin.parts[1] + pin.parts[2],
-            "seedKey": transKey.crypto.encSessionKey,
+            "seedKey": transKey.encryptedSessionKey,
             "initTime": servletData.initTime,
             "keyIndex_input-14": keypad.keyIndex,
             "keyboardType_input-14": keypad.keyboardType + "Mobile",
             "fieldType_input-14": keypad.fieldType,
-            "transkeyUuid": transKey.crypto.transkeyUuid,
-            "transkey_input-14": encryptedPin,
-            "transkey_HM_input-14": transKey.crypto.hmacDigest(encryptedPin)
+            "transkeyUuid": transKey.transkeyUuid,
+            "transkey_input-14": encryptedPin.encrypted,
+            "transkey_HM_input-14": encryptedPin.encryptedHmac
         });
 
         const voucherDataRequest = await this.client.post("https://m.cultureland.co.kr/vchr/getVoucherCheckMobileUsed.json", requestBody.toString(), {
@@ -107,9 +85,6 @@ export default class Cultureland {
                 "Referer": "https://m.cultureland.co.kr/vchr/voucherUsageGiftM.do"
             }
         });
-        if (voucherDataRequest instanceof AxiosError) {
-            return new CulturelandError("AxiosError", "POST /vchr/getVoucherCheckMobileUsed.json 요청에 실패하였습니다.", voucherDataRequest);
-        }
 
         const voucherData: VoucherResponse = voucherDataRequest.data;
 
@@ -131,15 +106,15 @@ export default class Cultureland {
             };
         }
         else if (voucherData.resultCd === "1") {
-            return new CulturelandError("LookupError", "일일 조회수를 초과하셨습니다.");
+            throw new CulturelandError("LookupError", "일일 조회수를 초과하셨습니다.");
         }
 
         if (voucherData.resultMsg) {
             console.log(voucherData.resultMsg);
-            return new CulturelandError("LookupError", "");
+            throw new CulturelandError("LookupError", "");
         }
 
-        return new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
+        throw new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
     }
 
     /**
@@ -150,21 +125,18 @@ export default class Cultureland {
      * @returns `safeBalance`: number - 보관중인 금액 (안심금고)
      * @returns `totalBalance`: number - 총 잔액 (사용 가능 금액 + 보관중인 금액)
      */
-    async getBalance(): Promise<CulturelandBalance | CulturelandError> {
+    public async getBalance(): Promise<CulturelandBalance> {
         if (!(await this.isLogin())) throw new CulturelandError("LoginRequiredError", "로그인이 필요한 서비스 입니다.");
 
         const balanceRequest = await this.client.post("https://m.cultureland.co.kr/tgl/getBalance.json");
-        if (balanceRequest instanceof AxiosError) {
-            return new CulturelandError("AxiosError", "POST /tgl/getBalance.json 요청에 실패하였습니다.", balanceRequest);
-        }
 
         const balance: BalanceResponse = balanceRequest.data;
         if (balance.resultMessage !== "성공") {
             if (balance.resultMessage) {
-                return new CulturelandError("LookupError", balance.resultMessage);
+                throw new CulturelandError("LookupError", balance.resultMessage);
             }
 
-            return new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
+            throw new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
         }
 
         return {
@@ -190,30 +162,23 @@ export default class Cultureland {
      * @returns `message`: string - 성공 여부 메시지 | `충전 완료`, `상품권지갑 보관`, `잔액이 0원인 상품권`, `상품권 번호 불일치`
      * @returns `amount`: number - 충전 금액
      */
-    async charge(pins: Pin | Pin[]): Promise<CulturelandCharge | CulturelandCharge[] | CulturelandError> {
+    public async charge(pins: Pin | Pin[]): Promise<CulturelandCharge | CulturelandCharge[]> {
         if (!(await this.isLogin())) throw new CulturelandError("LoginRequiredError", "로그인이 필요한 서비스 입니다.");
 
         if (pins instanceof Pin) { // 핀번호가 1개라면
             const pin = pins;
 
             // 핀번호가 유효하지 않는다면 리턴
-            if (pin.parts === null) {
-                return new CulturelandError("InvalidPinError", "핀번호가 유효하지 않습니다.");
+            if (!pin.parts) {
+                throw new CulturelandError("InvalidPinError", "핀번호가 유효하지 않습니다.");
             }
 
             // 선행 페이지 요청을 보내지 않으면 잘못된 접근 오류 발생
             const chargePageRequest = await this.client.get(
                 pin.parts[3].length === 4 ?
-                "https://m.cultureland.co.kr/csh/cshGiftCard.do" : // 모바일문화상품권
-                "https://m.cultureland.co.kr/csh/cshGiftCardOnline.do" // 문화상품권(18자리)
+                    "https://m.cultureland.co.kr/csh/cshGiftCard.do" : // 모바일문화상품권
+                    "https://m.cultureland.co.kr/csh/cshGiftCardOnline.do" // 문화상품권(18자리)
             );
-            if (chargePageRequest instanceof AxiosError) {
-                return new CulturelandError("AxiosError", `GET ${
-                    pin.parts[3].length === 4 ?
-                        "/csh/cshGiftCard.do" :
-                        "/csh/cshGiftCardOnline.do"
-                } 요청에 실패하였습니다.`, chargePageRequest);
-            }
 
             const transKey = new mTransKey(this.cookieJar);
             const servletData = await transKey.getServletData();
@@ -229,38 +194,28 @@ export default class Cultureland {
                 scr12: pin.parts[1],
                 scr13: pin.parts[2],
                 scr14: "*".repeat(pin.parts[3].length),
-                seedKey: transKey.crypto.encSessionKey,
+                seedKey: transKey.encryptedSessionKey,
                 initTime: servletData.initTime,
                 keyIndex_txtScr14: keypad.keyIndex,
                 keyboardType_txtScr14: keypad.keyboardType + "Mobile",
                 fieldType_txtScr14: keypad.fieldType,
-                transkeyUuid: transKey.crypto.transkeyUuid,
-                transkey_txtScr14: encryptedPin,
-                transkey_HM_txtScr14: transKey.crypto.hmacDigest(encryptedPin)
+                transkeyUuid: transKey.transkeyUuid,
+                transkey_txtScr14: encryptedPin.encrypted,
+                transkey_HM_txtScr14: encryptedPin.encryptedHmac
             });
 
             const chargeRequest = await this.client.post(
                 pin.parts[3].length === 4 ?
-                "https://m.cultureland.co.kr/csh/cshGiftCardProcess.do" : // 모바일문화상품권
-                "https://m.cultureland.co.kr/csh/cshGiftCardOnlineProcess.do", // 문화상품권(18자리)
+                    "https://m.cultureland.co.kr/csh/cshGiftCardProcess.do" : // 모바일문화상품권
+                    "https://m.cultureland.co.kr/csh/cshGiftCardOnlineProcess.do", // 문화상품권(18자리)
                 requestBody.toString(),
                 {
                     maxRedirects: 0,
                     validateStatus: status => status === 302
                 }
             );
-            if (chargeRequest instanceof AxiosError) {
-                return new CulturelandError("AxiosError", `POST ${
-                    pin.parts[3].length === 4 ?
-                        "/csh/cshGiftCardProcess.do" :
-                        "/csh/cshGiftCardOnlineProcess.do"
-                } 요청에 실패하였습니다.`, chargeRequest);
-            }
 
             const chargeResultRequest = await this.client.get("https://m.cultureland.co.kr" + chargeRequest.headers.location);
-            if (chargeResultRequest instanceof AxiosError) {
-                return new CulturelandError("AxiosError", `GET ${chargeRequest.headers.location} 요청에 실패하였습니다.`, chargeResultRequest);
-            }
 
             const chargeResult: string = chargeResultRequest.data; // 충전 결과 받아오기
 
@@ -276,13 +231,13 @@ export default class Cultureland {
         }
         else { // 핀번호가 배열이라면
             if (pins.length > 10) { // 핀번호가 10개 이상이라면
-                return new CulturelandError("RangeError", "핀번호는 1개 이상, 10개 이하여야 합니다.");
+                throw new CulturelandError("RangeError", "핀번호는 1개 이상, 10개 이하여야 합니다.");
             }
 
             // 유효하지 않은 핀번호가 있다면
-            const invalidIndex = pins.findIndex(pin => pin.parts === null);
+            const invalidIndex = pins.findIndex(pin => !pin.parts);
             if (invalidIndex !== -1) {
-                return new CulturelandError("InvalidPinError", (invalidIndex + 1) + "번째 핀번호가 유효하지 않습니다.");
+                throw new CulturelandError("InvalidPinError", (invalidIndex + 1) + "번째 핀번호가 유효하지 않습니다.");
             }
 
             const onlyMobileVouchers = pins.every(res => res.parts![3].length === 4); // 모바일문화상품권만 있는지
@@ -290,16 +245,9 @@ export default class Cultureland {
             // 선행 페이지 요청을 보내지 않으면 잘못된 접근 오류 발생
             const chargePageRequest = await this.client.get(
                 onlyMobileVouchers ?
-                "https://m.cultureland.co.kr/csh/cshGiftCard.do" : // 모바일문화상품권
-                "https://m.cultureland.co.kr/csh/cshGiftCardOnline.do" // 문화상품권(18자리)
+                    "https://m.cultureland.co.kr/csh/cshGiftCard.do" : // 모바일문화상품권
+                    "https://m.cultureland.co.kr/csh/cshGiftCardOnline.do" // 문화상품권(18자리)
             ); // 문화상품권(18자리)에서 모바일문화상품권도 충전 가능, 모바일문화상품권에서 문화상품권(18자리) 충전 불가능
-            if (chargePageRequest instanceof AxiosError) {
-                return new CulturelandError("AxiosError", `GET ${
-                    onlyMobileVouchers ?
-                        "/csh/cshGiftCard.do" :
-                        "/csh/cshGiftCardOnline.do"
-                } 요청에 실패하였습니다.`, chargePageRequest);
-            }
 
             const transKey = new mTransKey(this.cookieJar);
             const servletData = await transKey.getServletData();
@@ -310,7 +258,7 @@ export default class Cultureland {
             const transkeys: KeyStringValueStringObject[] = []; // transkey, transkey_HM
 
             for (const pin of pins) {
-                if (pin.parts === null) continue; // 유효하지 않은 핀번호의 경우 건너뛰기, 위에서 이미 확인하여 의미 없지만 린팅 이슈로 추가
+                if (!pin.parts) continue; // 유효하지 않은 핀번호의 경우 건너뛰기, 위에서 이미 확인하여 의미 없지만 린팅 이슈로 추가
 
                 const scr4 = `scr${pinCount}4`, txtScr4 = `txtScr${pinCount}4`;
 
@@ -334,8 +282,8 @@ export default class Cultureland {
 
                 // transkey
                 const transkey: KeyStringValueStringObject = {};
-                transkey["transkey_" + txtScr4] = encryptedPin;
-                transkey["transkey_HM_" + txtScr4] = transKey.crypto.hmacDigest(encryptedPin);
+                transkey["transkey_" + txtScr4] = encryptedPin.encrypted;
+                transkey["transkey_HM_" + txtScr4] = encryptedPin.encryptedHmac;
                 transkeys.push(transkey);
 
                 pinCount++;
@@ -343,9 +291,9 @@ export default class Cultureland {
 
             let requestBody: KeyStringValueStringObject = {
                 ...scratches,
-                seedKey: transKey.crypto.encSessionKey,
+                seedKey: transKey.encryptedSessionKey,
                 initTime: servletData.initTime,
-                transkeyUuid: transKey.crypto.transkeyUuid
+                transkeyUuid: transKey.transkeyUuid
             };
 
             for (let i = 0; i < keyboards.length; i++) {
@@ -361,26 +309,16 @@ export default class Cultureland {
 
             const chargeRequest = await this.client.post(
                 onlyMobileVouchers ?
-                "https://m.cultureland.co.kr/csh/cshGiftCardProcess.do" : // 모바일문화상품권
-                "https://m.cultureland.co.kr/csh/cshGiftCardOnlineProcess.do", // 문화상품권(18자리)
+                    "https://m.cultureland.co.kr/csh/cshGiftCardProcess.do" : // 모바일문화상품권
+                    "https://m.cultureland.co.kr/csh/cshGiftCardOnlineProcess.do", // 문화상품권(18자리)
                 new URLSearchParams(requestBody).toString(),
                 {
                     maxRedirects: 0,
                     validateStatus: status => status === 302
                 }
             );
-            if (chargeRequest instanceof AxiosError) {
-                return new CulturelandError("AxiosError", `POST ${
-                    onlyMobileVouchers ?
-                        "/csh/cshGiftCardProcess.do" :
-                        "/csh/cshGiftCardOnlineProcess.do"
-                } 요청에 실패하였습니다.`, chargeRequest);
-            }
 
             const chargeResultRequest = await this.client.get("https://m.cultureland.co.kr" + chargeRequest.headers.location);
-            if (chargeResultRequest instanceof AxiosError) {
-                return new CulturelandError("AxiosError", `GET ${chargeRequest.headers.location} 요청에 실패하였습니다.`, chargeResultRequest);
-            }
 
             const chargeResult: string = chargeResultRequest.data; // 충전 결과 받아오기
 
@@ -413,30 +351,24 @@ export default class Cultureland {
      * @returns `pin`: Pin - 선물 바코드 번호
      * @returns `url`: string - 선물 바코드 URL
      */
-    async gift(amount: number, quantity = 1): Promise<CulturelandGift | CulturelandError> {
+    public async gift(amount: number, quantity = 1): Promise<CulturelandGift> {
         if (!(await this.isLogin())) throw new CulturelandError("LoginRequiredError", "로그인이 필요한 서비스 입니다.");
 
         // 구매 금액이 조건에 맞지 않을 때
         if (amount % 100 !== 0 || amount < 1000 || amount > 50000) {
-            return new CulturelandError("RangeError", "구매 금액은 최소 1천원부터 최대 5만원까지 100원 단위로 입력 가능합니다.");
+            throw new CulturelandError("RangeError", "구매 금액은 최소 1천원부터 최대 5만원까지 100원 단위로 입력 가능합니다.");
         }
 
         // 구매 수량이 조건에 맞지 않을 때
         if (quantity % 1 !== 0 || quantity < 1 || quantity > 5) {
-            return new CulturelandError("RangeError", "구매 수량은 최소 1개부터 최대 5개까지 정수로 입력 가능합니다.");
+            throw new CulturelandError("RangeError", "구매 수량은 최소 1개부터 최대 5개까지 정수로 입력 가능합니다.");
         }
 
         // 유저정보 가져오기 (선물구매에 userKey 필요)
         const userInfo = await this.getUserInfo();
-        if (userInfo instanceof CulturelandError) {
-            return userInfo;
-        }
 
         // 선행 페이지 요청을 보내지 않으면 잘못된 접근 오류 발생
         const giftPageRequest = await this.client.get("https://m.cultureland.co.kr/gft/gftPhoneApp.do");
-        if (giftPageRequest instanceof AxiosError) {
-            return new CulturelandError("AxiosError", "GET /gft/gftPhoneApp.do 요청에 실패하였습니다.", giftPageRequest);
-        }
 
         // 내폰으로 전송 (본인 번호 가져옴)
         const phoneInfoRequest = await this.client.post("https://m.cultureland.co.kr/cpn/getGoogleRecvInfo.json", new URLSearchParams({
@@ -449,17 +381,14 @@ export default class Cultureland {
                 "Referer": "https://m.cultureland.co.kr/gft/gftPhoneApp.do"
             }
         });
-        if (phoneInfoRequest instanceof AxiosError) {
-            return new CulturelandError("AxiosError", "GET /cpn/getGoogleRecvInfo.json 요청에 실패하였습니다.", phoneInfoRequest);
-        }
 
         const phoneInfo: PhoneInfoResponse = phoneInfoRequest.data;
         if (phoneInfo.errMsg !== "정상") {
             if (phoneInfo.errMsg) {
-                return new CulturelandError("LookupError", phoneInfo.errMsg);
+                throw new CulturelandError("LookupError", phoneInfo.errMsg);
             }
 
-            return new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
+            throw new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
         }
 
         const sendGiftRequest = await this.client.post("https://m.cultureland.co.kr/gft/gftPhoneCashProc.do", new URLSearchParams({
@@ -479,14 +408,8 @@ export default class Cultureland {
             maxRedirects: 0,
             validateStatus: status => status === 302
         });
-        if (sendGiftRequest instanceof AxiosError) {
-            return new CulturelandError("AxiosError", "POST /gft/gftPhoneCashProc.do 요청에 실패하였습니다.", sendGiftRequest);
-        }
 
         const giftResultRequest = await this.client.get("https://m.cultureland.co.kr" + sendGiftRequest.headers.location);
-        if (giftResultRequest instanceof AxiosError) {
-            return new CulturelandError("AxiosError", `GET ${sendGiftRequest.headers.location} 요청에 실패하였습니다.`, giftResultRequest);
-        }
 
         const giftResult: string = giftResultRequest.data; // 선물 결과 받아오기
 
@@ -495,15 +418,12 @@ export default class Cultureland {
             // 바코드의 코드 (URL 쿼리: code)
             const barcodeCode = giftResult.match(/<input type="hidden" id="barcodeImage"      name="barcodeImage"       value="https:\/\/m\.cultureland\.co\.kr\/csh\/mb\.do\?code=([\w/+=]+)" \/>/)?.[1];
             if (!barcodeCode) {
-                return new CulturelandError("ResponseError", "선물 결과에서 바코드 URL을 찾을 수 없습니다.");
+                throw new CulturelandError("ResponseError", "선물 결과에서 바코드 URL을 찾을 수 없습니다.");
             }
 
             // 핀번호(바코드 번호)를 가져오기 위해 바코드 정보 요청
             const barcodePath = "/csh/mb.do?code=" + barcodeCode;
             const barcodeDataRequest = await this.client.get("https://m.cultureland.co.kr" + barcodePath);
-            if (barcodeDataRequest instanceof AxiosError) {
-                return new CulturelandError("AxiosError", `GET ${barcodePath} 요청에 실패하였습니다.`, barcodeDataRequest);
-            }
 
             const barcodeData: string = barcodeDataRequest.data;
 
@@ -522,10 +442,10 @@ export default class Cultureland {
         // 컬쳐랜드상품권(모바일문화상품권) 선물(구매)가 실패 하였습니다.
         const failReason = giftResult.match(/<dt class="two">실패 사유 <span class="right">(.*)<\/span><\/dt>/)?.[1]?.replace(/<br>/g, " ");
         if (failReason) {
-            return new CulturelandError("PurchaseError", failReason);
+            throw new CulturelandError("PurchaseError", failReason);
         }
 
-        return new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
+        throw new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
     }
 
     /**
@@ -535,21 +455,18 @@ export default class Cultureland {
      * @returns `remain`: number - 잔여 선물 한도
      * @returns `limit`: number - 최대 선물 한도
      */
-    async getGiftLimit(): Promise<CulturelandGiftLimit | CulturelandError> {
+    public async getGiftLimit(): Promise<CulturelandGiftLimit> {
         if (!(await this.isLogin())) throw new CulturelandError("LoginRequiredError", "로그인이 필요한 서비스 입니다.");
 
         const limitInfoRequest = await this.client.post("https://m.cultureland.co.kr/gft/chkGiftLimitAmt.json");
-        if (limitInfoRequest instanceof AxiosError) {
-            return new CulturelandError("AxiosError", "POST /gft/chkGiftLimitAmt.json 요청에 실패하였습니다.", limitInfoRequest);
-        }
 
         const limitInfo: GiftLimitResponse = limitInfoRequest.data;
         if (limitInfo.errMsg !== "정상") {
             if (limitInfo.errMsg) {
-                return new CulturelandError("LookupError", limitInfo.errMsg);
+                throw new CulturelandError("LookupError", limitInfo.errMsg);
             }
 
-            return new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
+            throw new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
         }
 
         return {
@@ -570,19 +487,16 @@ export default class Cultureland {
      * coupangCash.amount === 9400; // true
      * @returns `amount`: number - (전환 수수료 6%가 차감된) 전환된 금액
      */
-    async changeCoupangCash(amount: number): Promise<CulturelandChangeCoupangCash | CulturelandError> {
+    public async changeCoupangCash(amount: number): Promise<CulturelandChangeCoupangCash> {
         if (!(await this.isLogin())) throw new CulturelandError("LoginRequiredError", "로그인이 필요한 서비스 입니다.");
 
         // 전환 금액이 조건에 맞지 않을 때
         if (amount % 100 !== 0 || amount < 1000 || amount > 100_000) {
-            return new CulturelandError("RangeError", "전환 금액은 최소 1천원부터 월 최대 10만원까지 100원 단위로 입력 가능합니다.");
+            throw new CulturelandError("RangeError", "전환 금액은 최소 1천원부터 월 최대 10만원까지 100원 단위로 입력 가능합니다.");
         }
 
         // 선행 페이지에서 파라미터 가져옴
         const changeCoupangPageRequest = await this.client.get("https://m.cultureland.co.kr/chg/chgCoupangChange.do");
-        if (changeCoupangPageRequest instanceof AxiosError) {
-            return new CulturelandError("AxiosError", "GET /chg/chgCoupangChange.do 요청에 실패하였습니다.", changeCoupangPageRequest);
-        }
 
         const changeCoupangPage: string = changeCoupangPageRequest.data;
 
@@ -594,7 +508,7 @@ export default class Cultureland {
         // 잔여 쿠팡캐시 전환한도
         const possibleAmount = changeCoupangPage.match(/<input type="hidden" name="PossibleAmount" id="PossibleAmount" value="(\d+)">/)?.[1] || "106300";
         if (parseInt(possibleAmount) === 0) {
-            return new CulturelandError("RangeError", "당월 전환 가능 금액을 모두 소진하셨습니다.");
+            throw new CulturelandError("RangeError", "당월 전환 가능 금액을 모두 소진하셨습니다.");
         }
 
         const changeCoupangCashRequest = await this.client.post("https://m.cultureland.co.kr/chg/chgCoupangChangeProc.json", new URLSearchParams({
@@ -610,17 +524,14 @@ export default class Cultureland {
                 "Referer": "https://m.cultureland.co.kr/chg/chgCoupangChange.do"
             }
         });
-        if (changeCoupangCashRequest instanceof AxiosError) {
-            return new CulturelandError("AxiosError", "POST /chg/chgCoupangChangeProc.json 요청에 실패하였습니다.", changeCoupangCashRequest);
-        }
 
         const changeCoupangCash: ChangeCoupangCashResponse = changeCoupangCashRequest.data;
         if (changeCoupangCash.resultCd !== "0000") {
             if (changeCoupangCash.resultMsg) {
-                return new CulturelandError("PurchaseError", changeCoupangCash.resultMsg);
+                throw new CulturelandError("PurchaseError", changeCoupangCash.resultMsg);
             }
 
-            return new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
+            throw new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
         }
 
         return {
@@ -639,19 +550,16 @@ export default class Cultureland {
      * smileCash.amount === 10500; // true
      * @returns `amount`: number - (전환 수수료 5%가 과금된) 과금된 금액
      */
-    async changeSmileCash(amount: number): Promise<CulturelandChangeSmileCash | CulturelandError> {
+    public async changeSmileCash(amount: number): Promise<CulturelandChangeSmileCash> {
         if (!(await this.isLogin())) throw new CulturelandError("LoginRequiredError", "로그인이 필요한 서비스 입니다.");
 
         // 전환 금액이 조건에 맞지 않을 때
         if (amount % 100 !== 0 || amount < 1000 || amount > 2_000_000) {
-            return new CulturelandError("RangeError", "전환 금액은 최소 1천원부터 월 최대 200만원까지 100원 단위로 입력 가능합니다.");
+            throw new CulturelandError("RangeError", "전환 금액은 최소 1천원부터 월 최대 200만원까지 100원 단위로 입력 가능합니다.");
         }
 
         // 선행 페이지에서 파라미터 가져옴
         const changeSmileCashPageRequest = await this.client.get("https://m.cultureland.co.kr/chg/chgSmileCashChange.do");
-        if (changeSmileCashPageRequest instanceof AxiosError) {
-            return new CulturelandError("AxiosError", "GET /chg/chgSmileCashChange.do 요청에 실패하였습니다.", changeSmileCashPageRequest);
-        }
 
         const changeSmileCashPage: string = changeSmileCashPageRequest.data;
 
@@ -663,7 +571,7 @@ export default class Cultureland {
         // 잔여 스마일캐시 전환한도
         const possibleAmount = changeSmileCashPage.match(/<input type="hidden" name="PossibleAmount" id="PossibleAmount" value="(\d+)">/)?.[1] || "106300";
         if (parseInt(possibleAmount) === 0) {
-            return new CulturelandError("RangeError", "당월 전환 가능 금액을 모두 소진하셨습니다.");
+            throw new CulturelandError("RangeError", "당월 전환 가능 금액을 모두 소진하셨습니다.");
         }
 
         const changeSmileCashRequest = await this.client.post("https://m.cultureland.co.kr/chg/chgSmileCashChangeProc.json", new URLSearchParams({
@@ -678,17 +586,14 @@ export default class Cultureland {
                 "Referer": "https://m.cultureland.co.kr/chg/chgSmileCashChange.do"
             }
         });
-        if (changeSmileCashRequest instanceof AxiosError) {
-            return new CulturelandError("AxiosError", "POST /chg/chgSmileCashChangeProc.json 요청에 실패하였습니다.", changeSmileCashRequest);
-        }
 
         const changeSmileCash: ChangeSmileCashResponse = changeSmileCashRequest.data;
         if (changeSmileCash.resultCd !== "0000") {
             if (changeSmileCash.resultMsg) {
-                return new CulturelandError("PurchaseError", changeSmileCash.resultMsg);
+                throw new CulturelandError("PurchaseError", changeSmileCash.resultMsg);
             }
 
-            return new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
+            throw new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
         }
 
         return {
@@ -709,30 +614,24 @@ export default class Cultureland {
      * @returns `url`: string - 자동 입력 URL
      * @returns `certNo`: string - 카드번호
      */
-    async giftGooglePlay(amount: number, quantity = 1): Promise<CulturelandGooglePlay[] | CulturelandError> {
+    public async giftGooglePlay(amount: number, quantity = 1): Promise<CulturelandGooglePlay[]> {
         if (!(await this.isLogin())) throw new CulturelandError("LoginRequiredError", "로그인이 필요한 서비스 입니다.");
 
         // 구매 금액이 조건에 맞지 않을 때
         if (![5_000, 10_000, 15_000, 30_000, 50_000, 100_000, 150_000, 200_000].includes(amount)) {
-            return new CulturelandError("RangeError", "구매 금액은 5천원, 1만원, 1만5천원, 3만원, 5만원, 10만원, 15만원, 20만원만 입력 가능합니다.");
+            throw new CulturelandError("RangeError", "구매 금액은 5천원, 1만원, 1만5천원, 3만원, 5만원, 10만원, 15만원, 20만원만 입력 가능합니다.");
         }
 
         // 구매 수량이 조건에 맞지 않을 때
         if (quantity % 1 !== 0 || quantity < 1 || quantity > 10) {
-            return new CulturelandError("RangeError", "구매 수량은 최소 1개부터 최대 10개까지 정수로 입력 가능합니다.");
+            throw new CulturelandError("RangeError", "구매 수량은 최소 1개부터 최대 10개까지 정수로 입력 가능합니다.");
         }
 
         // 유저정보 가져오기 (기프트 코드 구매에 userKey 필요)
         const userInfo = await this.getUserInfo();
-        if (userInfo instanceof CulturelandError) {
-            return userInfo;
-        }
 
         // 선행 페이지에서 파라미터 가져옴
         const googlePageRequest = await this.client.get("https://m.cultureland.co.kr/cpn/googleApp.do");
-        if (googlePageRequest instanceof AxiosError) {
-            return new CulturelandError("AxiosError", "GET /cpn/googleApp.do 요청에 실패하였습니다.", googlePageRequest);
-        }
 
         const googlePage: string = googlePageRequest.data;
 
@@ -791,17 +690,14 @@ export default class Cultureland {
                 "Referer": "https://m.cultureland.co.kr/cpn/googleApp.do"
             }
         });
-        if (phoneInfoRequest instanceof AxiosError) {
-            return new CulturelandError("AxiosError", "GET /cpn/getGoogleRecvInfo.json 요청에 실패하였습니다.", phoneInfoRequest);
-        }
 
         const phoneInfo: PhoneInfoResponse = phoneInfoRequest.data;
         if (phoneInfo.errMsg !== "정상") {
             if (phoneInfo.errMsg) {
-                return new CulturelandError("LookupError", phoneInfo.errMsg);
+                throw new CulturelandError("LookupError", phoneInfo.errMsg);
             }
 
-            return new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
+            throw new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
         }
 
         // 기프트 코드 구매 전 구매 내역
@@ -820,65 +716,62 @@ export default class Cultureland {
                 "Referer": "https://m.cultureland.co.kr/cpn/googleBuyHis.do"
             }
         });
-        if (oldGoogleHistoryRequest instanceof AxiosError) {
-            return new CulturelandError("AxiosError", "POST /cpn/googleBuyHisItem.json 요청에 실패하였습니다.", oldGoogleHistoryRequest);
-        }
 
         const oldGoogleHistory: GooglePlayHistoryResponse = oldGoogleHistoryRequest.data;
 
         const payload = [
-            [ "tfsSeq", tfsSeq ],
-            [ "clientType", clientType ],
-            [ "fee", fee.toString() ],
-            [ "feeAmount", (amount * fee).toString() ],
-            [ "freefeeAmount", (amount * (parseFloat(freeFeeRate ?? "0") || 0)).toString() ],
-            [ "freeFeeYn", freeFeeYn ],
-            [ "freefeeReaminAmt", freefeeReaminAmt ],
-            [ "freeFeeRate", freeFeeRate ],
-            [ "freeFeeEvUseYN", freeFeeEvUseYN ],
-            [ "eventCode", eventCode ],
-            [ "cpnType", cpnType ],
-            [ "MallIP", MallIP ],
-            [ "UserIP", UserIP ],
-            [ "ediDate", ediDate ],
-            [ "EncryptData", EncryptData ],
-            [ "MallReserved", decodeURIComponent(MallReserved) ],
-            [ "PayMethod", PayMethod ],
-            [ "GoodsName", decodeURIComponent(GoodsName) ],
-            [ "Amt", (amount * (1 + fee)).toString() ],
-            [ "EncodingType", EncodingType ],
-            [ "TransType", TransType ],
-            [ "MID", MID ],
-            [ "SUB_ID", SUB_ID ],
-            [ "ReturnURL", decodeURIComponent(ReturnURL) ],
-            [ "RetryURL", decodeURIComponent(RetryURL) ],
-            [ "mallUserID", mallUserID ],
-            [ "BuyerName", decodeURIComponent(BuyerName) ],
-            [ "Moid", Moid ],
-            [ "popupUrl", decodeURIComponent(popupUrl) ],
-            [ "BuyerTel", userInfo.phone! ],
-            [ "BuyerEmail", decodeURIComponent(BuyerEmail) ],
-            [ "BuyerAddr", BuyerAddr ],
-            [ "merchantKey", merchantKey ],
-            [ "email", email ],
-            [ "Email1", Email1 ],
-            [ "Email2", Email2 ],
-            [ "discount", discount ],
-            [ "cardcode", cardcode ],
-            [ "Md5MallReserved", decodeURIComponent(Md5MallReserved) ],
-            [ "orderid", orderid ],
-            [ "itemname", decodeURIComponent(itemname) ],
-            [ "useragent", useragent ],
-            [ "sendType", "LMS" ],
-            [ "amount", amount.toString() ],
-            [ "quantity", quantity.toString() ],
-            [ "quantity", quantity.toString() ],
-            [ "rdSendType", "rdlms" ],
-            [ "chkLms", "M" ],
-            [ "recvHP", userInfo.phone! ],
-            [ "email", "" ],
-            [ "buyType", "CASH" ],
-            [ "chkAgree_paytus", "on" ]
+            ["tfsSeq", tfsSeq],
+            ["clientType", clientType],
+            ["fee", fee.toString()],
+            ["feeAmount", (amount * fee).toString()],
+            ["freefeeAmount", (amount * (parseFloat(freeFeeRate ?? "0") || 0)).toString()],
+            ["freeFeeYn", freeFeeYn],
+            ["freefeeReaminAmt", freefeeReaminAmt],
+            ["freeFeeRate", freeFeeRate],
+            ["freeFeeEvUseYN", freeFeeEvUseYN],
+            ["eventCode", eventCode],
+            ["cpnType", cpnType],
+            ["MallIP", MallIP],
+            ["UserIP", UserIP],
+            ["ediDate", ediDate],
+            ["EncryptData", EncryptData],
+            ["MallReserved", decodeURIComponent(MallReserved)],
+            ["PayMethod", PayMethod],
+            ["GoodsName", decodeURIComponent(GoodsName)],
+            ["Amt", (amount * (1 + fee)).toString()],
+            ["EncodingType", EncodingType],
+            ["TransType", TransType],
+            ["MID", MID],
+            ["SUB_ID", SUB_ID],
+            ["ReturnURL", decodeURIComponent(ReturnURL)],
+            ["RetryURL", decodeURIComponent(RetryURL)],
+            ["mallUserID", mallUserID],
+            ["BuyerName", decodeURIComponent(BuyerName)],
+            ["Moid", Moid],
+            ["popupUrl", decodeURIComponent(popupUrl)],
+            ["BuyerTel", userInfo.phone!],
+            ["BuyerEmail", decodeURIComponent(BuyerEmail)],
+            ["BuyerAddr", BuyerAddr],
+            ["merchantKey", merchantKey],
+            ["email", email],
+            ["Email1", Email1],
+            ["Email2", Email2],
+            ["discount", discount],
+            ["cardcode", cardcode],
+            ["Md5MallReserved", decodeURIComponent(Md5MallReserved)],
+            ["orderid", orderid],
+            ["itemname", decodeURIComponent(itemname)],
+            ["useragent", useragent],
+            ["sendType", "LMS"],
+            ["amount", amount.toString()],
+            ["quantity", quantity.toString()],
+            ["quantity", quantity.toString()],
+            ["rdSendType", "rdlms"],
+            ["chkLms", "M"],
+            ["recvHP", userInfo.phone!],
+            ["email", ""],
+            ["buyType", "CASH"],
+            ["chkAgree_paytus", "on"]
         ].map(kv => kv.map(encodeURIComponent).join("=")).join("&").replace(/%20/g, "+");
 
         const sendGoogleRequest = await this.client.post("https://m.cultureland.co.kr/cpn/googleBuyProc.json", payload, {
@@ -887,9 +780,6 @@ export default class Cultureland {
                 "Referer": "https://m.cultureland.co.kr/cpn/googleApp.do"
             }
         });
-        if (sendGoogleRequest instanceof AxiosError) {
-            return new CulturelandError("AxiosError", "POST /cpn/googleBuyProc.json 요청에 실패하였습니다.", sendGoogleRequest);
-        }
 
         const sendGoogle: GooglePlayBuyResponse = sendGoogleRequest.data;
 
@@ -897,25 +787,25 @@ export default class Cultureland {
             // PASS
         }
         else if (sendGoogle.errCd == "1001") {
-            return new CulturelandError("SafeLockRequiredError", "안심금고 서비스 가입 후 Google Play 기프트 코드 구매가 가능합니다.");
+            throw new CulturelandError("SafeLockRequiredError", "안심금고 서비스 가입 후 Google Play 기프트 코드 구매가 가능합니다.");
         }
         else if (sendGoogle.errCd == "1108") {
-            return new CulturelandError("ItemUnavailableError", "현재 선택하신 상품은 일시 품절입니다. 다른 권종의 상품으로 구매해 주세요.");
+            throw new CulturelandError("ItemUnavailableError", "현재 선택하신 상품은 일시 품절입니다. 다른 권종의 상품으로 구매해 주세요.");
         }
         else if (sendGoogle.errCd == "-998") {
-            return new CulturelandError("PurchaseRestrictedError", "전용계좌,계좌이체,무통장입금으로 컬쳐캐쉬를 충전하신 경우 안전한 서비스 이용을 위해 구매 및 선물 서비스가 제한됩니다. 자세한 문의사항은 고객센터(1577-2111)로 문의주시기 바랍니다.");
+            throw new CulturelandError("PurchaseRestrictedError", "전용계좌,계좌이체,무통장입금으로 컬쳐캐쉬를 충전하신 경우 안전한 서비스 이용을 위해 구매 및 선물 서비스가 제한됩니다. 자세한 문의사항은 고객센터(1577-2111)로 문의주시기 바랍니다.");
         }
         else if (sendGoogle.pinBuyYn == "Y") {
-            return new CulturelandError("DeliverFailError", "발송에 실패 하였습니다. 구매내역에서 재발송 해주세요!");
+            throw new CulturelandError("DeliverFailError", "발송에 실패 하였습니다. 구매내역에서 재발송 해주세요!");
         }
         else if (sendGoogle.pinBuyYn == "N") {
-            return new CulturelandError("PurchaseError", `구매에 실패 하였습니다. (실패 사유 : ${sendGoogle.errMsg}) 다시 구매해 주세요!`);
+            throw new CulturelandError("PurchaseError", `구매에 실패 하였습니다. (실패 사유 : ${sendGoogle.errMsg}) 다시 구매해 주세요!`);
         }
         else if (sendGoogle.errMsg) {
-            return new CulturelandError("PurchaseError", sendGoogle.errMsg.replace(/<br>/g, " "));
+            throw new CulturelandError("PurchaseError", sendGoogle.errMsg.replace(/<br>/g, " "));
         }
         else {
-            return new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
+            throw new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
         }
 
         // 기프트 코드 구매 후 구매 내역
@@ -934,9 +824,6 @@ export default class Cultureland {
                 "Referer": "https://m.cultureland.co.kr/cpn/googleBuyHis.do"
             }
         });
-        if (googleHistoryRequest instanceof AxiosError) {
-            return new CulturelandError("AxiosError", "POST /cpn/googleBuyHisItem.json 요청에 실패하였습니다.", googleHistoryRequest);
-        }
 
         let googleHistory: GooglePlayHistoryResponse = googleHistoryRequest.data;
 
@@ -961,16 +848,13 @@ export default class Cultureland {
                     "Referer": "https://m.cultureland.co.kr/cpn/googleBuyHis.do"
                 }
             });
-            if (googleHistoryRequest instanceof AxiosError) {
-                return new CulturelandError("AxiosError", "POST /cpn/googleBuyHisItem.json 요청에 실패하였습니다.", googleHistoryRequest);
-            }
 
             googleHistory = googleHistoryRequest.data;
         }
 
         // 기프트 코드 구매 내역의 수가 구매한 기프트 코드의 수만큼 변하지 않음
         if (googleHistory.cpnVO.totalCnt !== oldGoogleHistory.cpnVO.totalCnt + quantity) {
-            return new CulturelandError("LookupError", "구매한 기프트 코드의 정보를 가져올 수 없습니다. 본인 번호로 발송된 코드를 확인해 주세요.");
+            throw new CulturelandError("LookupError", "구매한 기프트 코드의 정보를 가져올 수 없습니다. 본인 번호로 발송된 코드를 확인해 주세요.");
         }
 
         // 구매 전 기프트 코드 내역과 대조
@@ -984,7 +868,7 @@ export default class Cultureland {
 
         // 새로운 기프트 코드 구매 내역의 수가 구매한 기프트 코드의 수와 일치하지 않음
         if (googleGifts.length !== quantity) {
-            return new CulturelandError("LookupError", "구매한 기프트 코드의 정보를 가져올 수 없습니다. 본인 번호로 발송된 코드를 확인해 주세요.");
+            throw new CulturelandError("LookupError", "구매한 기프트 코드의 정보를 가져올 수 없습니다. 본인 번호로 발송된 코드를 확인해 주세요.");
         }
 
         const results: CulturelandGooglePlay[] = [];
@@ -1014,21 +898,18 @@ export default class Cultureland {
      * @returns `index`: number - 유저 고유 인덱스
      * @returns `category`: string - 유저 종류
      */
-    async getUserInfo(): Promise<CulturelandUser | CulturelandError> {
+    public async getUserInfo(): Promise<CulturelandUser> {
         if (!(await this.isLogin())) throw new CulturelandError("LoginRequiredError", "로그인이 필요한 서비스 입니다.");
 
         const userInfoRequest = await this.client.post("https://m.cultureland.co.kr/tgl/flagSecCash.json");
-        if (userInfoRequest instanceof AxiosError) {
-            return new CulturelandError("AxiosError", "POST /tgl/flagSecCash.json 요청에 실패하였습니다.", userInfoRequest);
-        }
 
         const userInfo: UserInfoResponse = userInfoRequest.data;
         if (userInfo.resultMessage !== "성공") {
             if (userInfo.resultMessage) {
-                return new CulturelandError("LookupError", userInfo.resultMessage);
+                throw new CulturelandError("LookupError", userInfo.resultMessage);
             }
 
-            return new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
+            throw new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
         }
 
         return {
@@ -1052,18 +933,15 @@ export default class Cultureland {
      * @returns `name`: string - 멤버의 이름 | `홍*동`
      * @returns `verificationLevel`: string - 멤버의 인증 등급 | `본인인증`
      */
-    async getMemberInfo(): Promise<CulturelandMember | CulturelandError> {
+    public async getMemberInfo(): Promise<CulturelandMember> {
         if (!(await this.isLogin())) throw new CulturelandError("LoginRequiredError", "로그인이 필요한 서비스 입니다.");
 
         const memberInfoRequest = await this.client.post("https://m.cultureland.co.kr/mmb/mmbMain.do");
-        if (memberInfoRequest instanceof AxiosError) {
-            return new CulturelandError("AxiosError", "POST /mmb/mmbMain.do 요청에 실패하였습니다.", memberInfoRequest);
-        }
 
         const memberInfo: string = memberInfoRequest.data;
 
         if (!memberInfo.includes("meTop_info")) {
-            return new CulturelandError("LookupError", "멤버 정보를 가져올 수 없습니다.");
+            throw new CulturelandError("LookupError", "멤버 정보를 가져올 수 없습니다.");
         }
 
         const memberData = parse(memberInfo) // 멤버 정보 HTML 파싱
@@ -1092,7 +970,7 @@ export default class Cultureland {
      * @returns `[].spendType`: string - 사용 종류 | `사용`, `사용취소`, `충전`
      * @returns `[].timestamp`: number - 내역 시간
      */
-    async getCultureCashLogs(days: number, pageSize = 20, page = 1): Promise<CulturelandCashLogs | CulturelandError> {
+    public async getCultureCashLogs(days: number, pageSize = 20, page = 1): Promise<CulturelandCashLogs> {
         if (!(await this.isLogin())) throw new CulturelandError("LoginRequiredError", "로그인이 필요한 서비스 입니다.");
 
         const cashLogsRequest = await this.client.post("https://m.cultureland.co.kr/tgl/cashList.json", new URLSearchParams({
@@ -1105,9 +983,6 @@ export default class Cultureland {
                 "Referer": "https://m.cultureland.co.kr/tgl/cashSearch.do"
             }
         });
-        if (cashLogsRequest instanceof AxiosError) {
-            return new CulturelandError("AxiosError", "POST /tgl/cashList.json 요청에 실패하였습니다.", cashLogsRequest);
-        }
 
         const cashLogs: CashLogsResponse = cashLogsRequest.data;
 
@@ -1128,7 +1003,7 @@ export default class Cultureland {
      * await client.isLogin();
      * @returns 로그인 여부
      */
-    async isLogin() {
+    public async isLogin() {
         const isLoginRequest = await this.client.post("https://m.cultureland.co.kr/mmb/isLogin.json");
         if (isLoginRequest instanceof AxiosError) return false;
 
@@ -1151,23 +1026,20 @@ export default class Cultureland {
      * @returns `browserId`: string - 브라우저 아이디
      * @returns `macAddress`: string - 임의의 MAC 주소
      */
-    async login(id: string, password: string, captchaKey: string | null = null, browserId: string | null = null, macAddress: string | null = null): Promise<CulturelandLogin | CulturelandError> {
+    public async login(id: string, password: string, captchaKey?: string, browserId?: string, macAddress?: string): Promise<CulturelandLogin> {
         // 브라우저 아이디가 없을 때
-        if (browserId === null) {
+        if (!browserId) {
             browserId = crypto.randomBytes(16).toString("hex");
         }
 
         // MAC 주소가 없을 때
-        if (macAddress === null) {
+        if (!macAddress) {
             const macAddressRequest = await this.client.post("https://m.cultureland.co.kr/mmb/macAddrSelect.json", "flag=newMacAddr", {
                 headers: {
                     "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
                     "Referer": "https://m.cultureland.co.kr/mmb/loginMain.do"
                 }
             });
-            if (macAddressRequest instanceof AxiosError) {
-                return new CulturelandError("AxiosError", "POST /mmb/macAddrSelect.json 요청에 실패하였습니다.", macAddressRequest);
-            }
 
             macAddress = macAddressRequest.data.newMacAddr ?? crypto.randomBytes(15).toString("hex").toUpperCase();
         }
@@ -1180,7 +1052,7 @@ export default class Cultureland {
         const encryptedPassword = keypad.encryptPassword(password, keypadLayout);
 
         let captchaResponse = "";
-        if (captchaKey === null) { // 캡챠키를 입력하지 않았을 경우
+        if (!captchaKey) { // 캡챠키를 입력하지 않았을 경우
             // 0-9a-zA-Z 랜덤 string 생성 (64글자)
             const randomString = new Array(64).fill("").map(
                 () =>
@@ -1193,21 +1065,6 @@ export default class Cultureland {
                 "https://m.cultureland.co.kr"
             );
         }
-        else {
-            const capMonster = new CapMonster(captchaKey);
-
-            // CapMonster API에게 컬쳐랜드 로그인 hCaptcha 해결 요청
-            const taskId = await capMonster.createTask("HCaptchaTaskProxyless", "https://m.cultureland.co.kr/mmb/loginMain.do", "3818bcdf-30ee-4d2f-bfd3-55dda192c639", true);
-
-            // 캡챠 해결이 완료될 때까지 기다리고 응답 받아오기
-            const captchaResult = await capMonster.awaitTaskResult(taskId!);
-
-            if (!captchaResult.success) {
-                return new CulturelandError("CaptchaError", "보안 그림 인증 실패 하였습니다. 다시 시도해주세요.");
-            }
-
-            captchaResponse = captchaResult.solution!;
-        }
 
         const requestBody = new URLSearchParams({
             keepLoginInfo: "",
@@ -1218,14 +1075,14 @@ export default class Cultureland {
             userId: id,
             passwd: "*".repeat(password.length),
             keepLogin: "Y",
-            seedKey: transKey.crypto.encSessionKey,
+            seedKey: transKey.encryptedSessionKey,
             initTime: servletData.initTime,
             keyIndex_passwd: keypad.keyIndex,
             keyboardType_passwd: keypad.keyboardType + "Mobile",
             fieldType_passwd: keypad.fieldType,
-            transkeyUuid: transKey.crypto.transkeyUuid,
-            transkey_passwd: encryptedPassword,
-            transkey_HM_passwd: transKey.crypto.hmacDigest(encryptedPassword)
+            transkeyUuid: transKey.transkeyUuid,
+            transkey_passwd: encryptedPassword.encrypted,
+            transkey_HM_passwd: encryptedPassword.encryptedHmac
         }).toString();
 
         const loginRequest = await this.client.post("https://m.cultureland.co.kr/mmb/loginProcess.do", requestBody, {
@@ -1237,36 +1094,30 @@ export default class Cultureland {
             validateStatus: status => status === 200 || status === 302,
             proxy: this.proxy ?? false
         });
-        if (loginRequest instanceof AxiosError) {
-            return new CulturelandError("AxiosError", "POST /mmb/loginProcess.do 요청에 실패하였습니다.", loginRequest);
-        }
 
         // 메인 페이지로 리다이렉션되지 않은 경우
         if (loginRequest.status === 200) {
             const errorMessage = loginRequest.data.match(/<input type="hidden" name="loginErrMsg"  value="([^"]+)" \/>/)?.[1];
             if (errorMessage) {
-                return new CulturelandError("LoginError", errorMessage);
+                throw new CulturelandError("LoginError", errorMessage);
             }
 
-            return new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
+            throw new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
         }
 
         // 컬쳐랜드 로그인 정책에 따라 로그인이 제한된 경우
         if (loginRequest.headers.location === "/cmp/authConfirm.do") {
             const errorPageRequest = await this.client.get("https://m.cultureland.co.kr" + loginRequest.headers.location);
-            if (errorPageRequest instanceof AxiosError) {
-                return new CulturelandError("AxiosError", `GET ${loginRequest.headers.location} 요청에 실패하였습니다.`, errorPageRequest);
-            }
 
             const errorPage: string = errorPageRequest.data;
 
             // 제한코드 가져오기
             const errorCode = errorPage.match(/var errCode = "(\d+)";/)?.[1];
             if (errorCode) {
-                return new CulturelandError("LoginRestrictedError", `컬쳐랜드 로그인 정책에 따라 로그인이 제한되었습니다. (제한코드 ${errorCode})`);
+                throw new CulturelandError("LoginRestrictedError", `컬쳐랜드 로그인 정책에 따라 로그인이 제한되었습니다. (제한코드 ${errorCode})`);
             }
 
-            return new CulturelandError("LoginRestrictedError", "컬쳐랜드 로그인 정책에 따라 로그인이 제한되었습니다.");
+            throw new CulturelandError("LoginRestrictedError", "컬쳐랜드 로그인 정책에 따라 로그인이 제한되었습니다.");
         }
 
         // 로그인 유지 정보 가져오기
@@ -1302,7 +1153,7 @@ export default class Cultureland {
      * @returns `browserId`: string - 브라우저 아이디
      * @returns `macAddress`: string - 임의의 MAC 주소
      */
-    async loginWithKeepLoginInfo(keepLoginInfo: string, browserId: string | null = null, macAddress: string | null = null): Promise<CulturelandLoginWithKeepLoginInfo | CulturelandError> {
+    public async loginWithKeepLoginInfo(keepLoginInfo: string, browserId?: string, macAddress?: string): Promise<CulturelandLoginWithKeepLoginInfo> {
         // 로그인 유지 정보를 쿠키에 저장
         await this.cookieJar.setCookie(
             new Cookie({ key: "KeepLoginConfig", value: encodeURIComponent(keepLoginInfo) }),
@@ -1314,34 +1165,28 @@ export default class Cultureland {
                 "Referer": "https://m.cultureland.co.kr/index.do"
             }
         });
-        if (loginMainRequest instanceof AxiosError) {
-            return new CulturelandError("AxiosError", "GET /mmb/loginMain.do 요청에 실패하였습니다.", loginMainRequest);
-        }
 
         const loginMain: string = loginMainRequest.data;
 
         const userId = loginMain.match(/<input type="text" id="txtUserId" name="userId" value="(\w*)" maxlength="12" oninput="maxLengthCheck\(this\);" placeholder="아이디" >/)?.[1] ?? "";
 
         if (!userId) {
-            return new CulturelandError("LoginError", "입력하신 아이디 또는 비밀번호가 틀립니다");
+            throw new CulturelandError("LoginError", "입력하신 아이디 또는 비밀번호가 틀립니다");
         }
 
         // 브라우저 아이디가 없을 때
-        if (browserId === null) {
+        if (!browserId) {
             browserId = crypto.randomBytes(16).toString("hex");
         }
 
         // MAC 주소가 없을 때
-        if (macAddress === null) {
+        if (!macAddress) {
             const macAddressRequest = await this.client.post("https://m.cultureland.co.kr/mmb/macAddrSelect.json", "flag=newMacAddr", {
                 headers: {
                     "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
                     "Referer": "https://m.cultureland.co.kr/mmb/loginMain.do"
                 }
             });
-            if (macAddressRequest instanceof AxiosError) {
-                return new CulturelandError("AxiosError", "POST /mmb/macAddrSelect.json 요청에 실패하였습니다.", macAddressRequest);
-            }
 
             macAddress = macAddressRequest.data.newMacAddr ?? crypto.randomBytes(15).toString("hex").toUpperCase();
         }
@@ -1360,14 +1205,14 @@ export default class Cultureland {
             newMacAddr: macAddress!,
             userId,
             keepLogin: "Y",
-            seedKey: transKey.crypto.encSessionKey,
+            seedKey: transKey.encryptedSessionKey,
             initTime: servletData.initTime,
             keyIndex_passwd: keypad.keyIndex,
             keyboardType_passwd: keypad.keyboardType + "Mobile",
             fieldType_passwd: keypad.fieldType,
-            transkeyUuid: transKey.crypto.transkeyUuid,
-            transkey_passwd: encryptedPassword,
-            transkey_HM_passwd: transKey.crypto.hmacDigest(encryptedPassword)
+            transkeyUuid: transKey.transkeyUuid,
+            transkey_passwd: encryptedPassword.encrypted,
+            transkey_HM_passwd: encryptedPassword.encryptedHmac
         }).toString();
 
         const loginRequest = await this.client.post("https://m.cultureland.co.kr/mmb/loginProcess.do", requestBody, {
@@ -1379,36 +1224,30 @@ export default class Cultureland {
             validateStatus: status => status === 200 || status === 302,
             proxy: this.proxy ?? false
         });
-        if (loginRequest instanceof AxiosError) {
-            return new CulturelandError("AxiosError", "POST /mmb/loginProcess.do 요청에 실패하였습니다.", loginRequest);
-        }
 
         // 메인 페이지로 리다이렉션되지 않은 경우
         if (loginRequest.status === 200) {
             const errorMessage = loginRequest.data.match(/<input type="hidden" name="loginErrMsg"  value="([^"]+)" \/>/)?.[1];
             if (errorMessage) {
-                return new CulturelandError("LoginError", errorMessage);
+                throw new CulturelandError("LoginError", errorMessage);
             }
 
-            return new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
+            throw new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
         }
 
         // 컬쳐랜드 로그인 정책에 따라 로그인이 제한된 경우
         if (loginRequest.headers.location === "/cmp/authConfirm.do") {
             const errorPageRequest = await this.client.get("https://m.cultureland.co.kr" + loginRequest.headers.location);
-            if (errorPageRequest instanceof AxiosError) {
-                return new CulturelandError("AxiosError", `GET ${loginRequest.headers.location} 요청에 실패하였습니다.`, errorPageRequest);
-            }
 
             const errorPage: string = errorPageRequest.data;
 
             // 제한코드 가져오기
             const errorCode = errorPage.match(/var errCode = "(\d+)";/)?.[1];
             if (errorCode) {
-                return new CulturelandError("LoginRestrictedError", `컬쳐랜드 로그인 정책에 따라 로그인이 제한되었습니다. (제한코드 ${errorCode})`);
+                throw new CulturelandError("LoginRestrictedError", `컬쳐랜드 로그인 정책에 따라 로그인이 제한되었습니다. (제한코드 ${errorCode})`);
             }
 
-            return new CulturelandError("LoginRestrictedError", "컬쳐랜드 로그인 정책에 따라 로그인이 제한되었습니다.");
+            throw new CulturelandError("LoginRestrictedError", "컬쳐랜드 로그인 정책에 따라 로그인이 제한되었습니다.");
         }
 
         // 로그인 유지 정보 가져오기
@@ -1431,3 +1270,5 @@ export default class Cultureland {
         }
     }
 }
+
+export default Cultureland;

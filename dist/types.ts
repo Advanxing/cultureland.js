@@ -1,8 +1,4 @@
-/**
- * 타입 짬통 파일
- */
-
-import Pin from "./pin.js";
+import Pin from "./Pin.js";
 
 export interface KeyStringValueStringObject {
     [key: string]: string;

@@ -1,10 +1,10 @@
 import axios from "axios";
-import { HttpCookieAgent, HttpsCookieAgent } from "http-cookie-agent/http";
-import { CookieJar } from "tough-cookie";
 import crypto from "crypto";
-import Crypto from "./crypto.js";
+import { HttpCookieAgent, HttpsCookieAgent } from "http-cookie-agent/http";
 import Jimp from "jimp";
-import Seed from "./seed.js";
+import Crypto from "./Crypto.js";
+import Seed from "./Seed.js";
+import mTransKey from "./Transkey.js";
 import { ServletData } from "./types.js";
 
 const specialChars = ["`", "~", "!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "-", "_", "=", "+", "[", "{", "]", "}", "\\", "|", ";", ":", "/", "?", ",", "<", ".", ">", "'", "\"", "+", "-", "*", "/"];
@@ -23,16 +23,15 @@ const numberKeyHashes = [
     "72b37a3cde7c13926b2404f47a19da5e" // empty
 ];
 
-export default class Keypad {
+export class Keypad {
     public keyIndex: string;
     public constructor(
+        public mTranskey: mTransKey,
         public servletData: ServletData,
-        public cookieJar: CookieJar,
         public keyboardType: "qwerty" | "number",
         public name: string,
         public inputName: string,
-        public fieldType: string,
-        public crypto: Crypto
+        public fieldType: string
     ) {
         this.keyIndex = "";
     }
@@ -65,10 +64,13 @@ export default class Keypad {
                 else geoString = "l " + geo.join(" "); // 소문자 또는 숫자라면
             }
 
-            encrypted += "$" + Seed.SeedEnc(geoString, this.crypto.sessionKey);
+            encrypted += "$" + Seed.SeedEnc(geoString, this.mTranskey.sessionKey);
         }
 
-        return encrypted;
+        return {
+            encrypted,
+            encryptedHmac: Crypto.hmacDigest(this.mTranskey.genSessionKey, encrypted)
+        };
     }
 
     /**
@@ -77,8 +79,8 @@ export default class Keypad {
      */
     public async getKeypadLayout() {
         const options = {
-            httpAgent: new HttpCookieAgent({ cookies: { jar: this.cookieJar } }),
-            httpsAgent: new HttpsCookieAgent({ cookies: { jar: this.cookieJar } }),
+            httpAgent: new HttpCookieAgent({ cookies: { jar: this.mTranskey.cookieJar } }),
+            httpsAgent: new HttpsCookieAgent({ cookies: { jar: this.mTranskey.cookieJar } }),
             headers: {
                 "User-Agent": "Mozilla/5.0 (Linux; Android 11; SM-G998N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Mobile Safari/537.36",
                 "Connection": "keep-alive"
@@ -93,10 +95,10 @@ export default class Keypad {
             "fieldType": this.fieldType,
             "inputName": this.inputName,
             "parentKeyboard": "false",
-            "transkeyUuid": this.crypto.transkeyUuid,
+            "transkeyUuid": this.mTranskey.transkeyUuid,
             "exE2E": "false",
             "TK_requestToken": this.servletData.requestToken,
-            "allocationIndex": this.crypto.allocationIndex.toString(),
+            "allocationIndex": this.mTranskey.allocationIndex.toString(),
             "keyIndex": this.keyIndex,
             "initTime": this.servletData.initTime,
             "talkBack": "true"
@@ -110,10 +112,10 @@ export default class Keypad {
             "fieldType": this.fieldType,
             "inputName": this.inputName,
             "parentKeyboard": "false",
-            "transkeyUuid": this.crypto.transkeyUuid,
+            "transkeyUuid": this.mTranskey.transkeyUuid,
             "exE2E": "false",
             "TK_requestToken": this.servletData.requestToken,
-            "allocationIndex": this.crypto.allocationIndex.toString(),
+            "allocationIndex": this.mTranskey.allocationIndex.toString(),
             "keyIndex": this.keyIndex,
             "initTime": this.servletData.initTime
         }).toString(), {
@@ -162,3 +164,5 @@ export default class Keypad {
         return layout;
     }
 }
+
+export default Keypad;
