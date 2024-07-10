@@ -5,25 +5,25 @@
     "type": "commonjs",
     "exports": {
         ".": {
-            "import": {
-                "types": "./dist/index.mts",
-                "default": "./dist/index.mjs"
-            },
             "require": {
-                "types": "./dist/index.ts",
+                "types": "./dist/index.d.ts",
                 "default": "./dist/index.js"
+            },
+            "import": {
+                "types": "./dist/index.d.mts",
+                "default": "./dist/index.mjs"
             }
         }
     },
     "main": "./dist/index.js",
     "module": "./dist/index.mjs",
-    "types": "./dist/index.mts",
+    "types": "./dist/index.d.ts",
     "scripts": {
         "build": "tsup"
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/Gitland/Cultureland-API.git"
+        "url": "https://github.com/Gitland/cultureland.js.git"
     },
     "keywords": [
         "cultureland",
@@ -34,9 +34,9 @@
     ],
     "license": "GPL-3.0",
     "bugs": {
-        "url": "https://github.com/Gitland/Cultureland-API/issues"
+        "url": "https://github.com/Gitland/cultureland.js/issues"
     },
-    "homepage": "https://github.com/Gitland/Cultureland-API#readme",
+    "homepage": "https://github.com/Gitland/cultureland.js#readme",
     "dependencies": {
         "@modern-dev/jsbn": "^1.2.5",
         "axios": "^1.4.0",
