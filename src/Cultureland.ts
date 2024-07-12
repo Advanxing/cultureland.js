@@ -67,7 +67,7 @@ export class Cultureland {
         const encryptedPin = keypad.encryptPassword(pin.parts[3], keypadLayout);
 
         // culturelandInput 실제로 같은 키 4개가 사용되어 그대로 반영하였습니다.
-        const requestBody = new URLSearchParams({
+        const payload = new URLSearchParams({
             "culturelandNo": pin.parts[0] + pin.parts[1] + pin.parts[2],
             "seedKey": transKey.encryptedSessionKey,
             "initTime": servletData.initTime,
@@ -79,9 +79,8 @@ export class Cultureland {
             "transkey_HM_input-14": encryptedPin.encryptedHmac
         });
 
-        const voucherDataRequest = await this.client.post("https://m.cultureland.co.kr/vchr/getVoucherCheckMobileUsed.json", requestBody.toString(), {
+        const voucherDataRequest = await this.client.post("https://m.cultureland.co.kr/vchr/getVoucherCheckMobileUsed.json", payload, {
             headers: {
-                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
                 "Referer": "https://m.cultureland.co.kr/vchr/voucherUsageGiftM.do"
             }
         });
@@ -188,7 +187,7 @@ export class Cultureland {
             const keypadLayout = await keypad.getKeypadLayout();
             const encryptedPin = keypad.encryptPassword(pin.parts[3], keypadLayout);
 
-            const requestBody = new URLSearchParams({
+            const payload = new URLSearchParams({
                 versionCode: "",
                 scr11: pin.parts[0],
                 scr12: pin.parts[1],
@@ -208,7 +207,7 @@ export class Cultureland {
                 pin.parts[3].length === 4 ?
                     "https://m.cultureland.co.kr/csh/cshGiftCardProcess.do" : // 모바일문화상품권
                     "https://m.cultureland.co.kr/csh/cshGiftCardOnlineProcess.do", // 문화상품권(18자리)
-                requestBody.toString(),
+                payload.toString(),
                 {
                     maxRedirects: 0,
                     validateStatus: status => status === 302
@@ -289,7 +288,7 @@ export class Cultureland {
                 pinCount++;
             }
 
-            let requestBody: KeyStringValueStringObject = {
+            let payload: KeyStringValueStringObject = {
                 ...scratches,
                 seedKey: transKey.encryptedSessionKey,
                 initTime: servletData.initTime,
@@ -300,8 +299,8 @@ export class Cultureland {
                 const keyboard = keyboards[i];
                 const transkey = transkeys[i];
 
-                requestBody = {
-                    ...requestBody,
+                payload = {
+                    ...payload,
                     ...keyboard,
                     ...transkey
                 };
@@ -311,7 +310,7 @@ export class Cultureland {
                 onlyMobileVouchers ?
                     "https://m.cultureland.co.kr/csh/cshGiftCardProcess.do" : // 모바일문화상품권
                     "https://m.cultureland.co.kr/csh/cshGiftCardOnlineProcess.do", // 문화상품권(18자리)
-                new URLSearchParams(requestBody).toString(),
+                new URLSearchParams(payload).toString(),
                 {
                     maxRedirects: 0,
                     validateStatus: status => status === 302
@@ -375,9 +374,8 @@ export class Cultureland {
             sendType: "LMS",
             recvType: "M",
             cpnType: "GIFT"
-        }).toString(), {
+        }), {
             headers: {
-                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
                 "Referer": "https://m.cultureland.co.kr/gft/gftPhoneApp.do"
             }
         });
@@ -518,9 +516,8 @@ export class Cultureland {
             freefeeAmount: (amount * freeFeeRate).toString(),
             eventCode,
             PossibleAmount: possibleAmount
-        }).toString(), {
+        }), {
             headers: {
-                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
                 "Referer": "https://m.cultureland.co.kr/chg/chgCoupangChange.do"
             }
         });
@@ -580,9 +577,8 @@ export class Cultureland {
             feeAmount: (amount * fee).toString(),
             freefeeAmount: (amount * freeFeeRate).toString(),
             eventCode
-        }).toString(), {
+        }), {
             headers: {
-                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
                 "Referer": "https://m.cultureland.co.kr/chg/chgSmileCashChange.do"
             }
         });
@@ -684,9 +680,8 @@ export class Cultureland {
             sendType: "LMS",
             recvType: "M",
             cpnType: "GOOGLE"
-        }).toString(), {
+        }), {
             headers: {
-                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
                 "Referer": "https://m.cultureland.co.kr/cpn/googleApp.do"
             }
         });
@@ -710,102 +705,93 @@ export class Cultureland {
             page: "1",
             tabFlag: "cash",
             inputHp: ""
-        }).toString(), {
+        }), {
             headers: {
-                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
                 "Referer": "https://m.cultureland.co.kr/cpn/googleBuyHis.do"
             }
         });
 
         const oldGoogleHistory: GooglePlayHistoryResponse = oldGoogleHistoryRequest.data;
 
-        const payload = [
-            ["tfsSeq", tfsSeq],
-            ["clientType", clientType],
-            ["fee", fee.toString()],
-            ["feeAmount", (amount * fee).toString()],
-            ["freefeeAmount", (amount * (parseFloat(freeFeeRate ?? "0") || 0)).toString()],
-            ["freeFeeYn", freeFeeYn],
-            ["freefeeReaminAmt", freefeeReaminAmt],
-            ["freeFeeRate", freeFeeRate],
-            ["freeFeeEvUseYN", freeFeeEvUseYN],
-            ["eventCode", eventCode],
-            ["cpnType", cpnType],
-            ["MallIP", MallIP],
-            ["UserIP", UserIP],
-            ["ediDate", ediDate],
-            ["EncryptData", EncryptData],
-            ["MallReserved", decodeURIComponent(MallReserved)],
-            ["PayMethod", PayMethod],
-            ["GoodsName", decodeURIComponent(GoodsName)],
-            ["Amt", (amount * (1 + fee)).toString()],
-            ["EncodingType", EncodingType],
-            ["TransType", TransType],
-            ["MID", MID],
-            ["SUB_ID", SUB_ID],
-            ["ReturnURL", decodeURIComponent(ReturnURL)],
-            ["RetryURL", decodeURIComponent(RetryURL)],
-            ["mallUserID", mallUserID],
-            ["BuyerName", decodeURIComponent(BuyerName)],
-            ["Moid", Moid],
-            ["popupUrl", decodeURIComponent(popupUrl)],
-            ["BuyerTel", userInfo.phone!],
-            ["BuyerEmail", decodeURIComponent(BuyerEmail)],
-            ["BuyerAddr", BuyerAddr],
-            ["merchantKey", merchantKey],
-            ["email", email],
-            ["Email1", Email1],
-            ["Email2", Email2],
-            ["discount", discount],
-            ["cardcode", cardcode],
-            ["Md5MallReserved", decodeURIComponent(Md5MallReserved)],
-            ["orderid", orderid],
-            ["itemname", decodeURIComponent(itemname)],
-            ["useragent", useragent],
-            ["sendType", "LMS"],
-            ["amount", amount.toString()],
-            ["quantity", quantity.toString()],
-            ["quantity", quantity.toString()],
-            ["rdSendType", "rdlms"],
-            ["chkLms", "M"],
-            ["recvHP", userInfo.phone!],
-            ["email", ""],
-            ["buyType", "CASH"],
-            ["chkAgree_paytus", "on"]
-        ].map(kv => kv.map(encodeURIComponent).join("=")).join("&").replace(/%20/g, "+");
+        const payload = new URLSearchParams({
+            tfsSeq: tfsSeq,
+            clientType: clientType,
+            fee: fee.toString(),
+            feeAmount: (amount * fee).toString(),
+            freefeeAmount: (amount * (parseFloat(freeFeeRate ?? "0") || 0)).toString(),
+            freeFeeYn: freeFeeYn,
+            freefeeReaminAmt: freefeeReaminAmt,
+            freeFeeRate: freeFeeRate,
+            freeFeeEvUseYN: freeFeeEvUseYN,
+            eventCode: eventCode,
+            cpnType: cpnType,
+            MallIP: MallIP,
+            UserIP: UserIP,
+            ediDate: ediDate,
+            EncryptData: EncryptData,
+            MallReserved: decodeURIComponent(MallReserved),
+            PayMethod: PayMethod,
+            GoodsName: decodeURIComponent(GoodsName),
+            Amt: (amount * (1 + fee)).toString(),
+            EncodingType: EncodingType,
+            TransType: TransType,
+            MID: MID,
+            SUB_ID: SUB_ID,
+            ReturnURL: decodeURIComponent(ReturnURL),
+            RetryURL: decodeURIComponent(RetryURL),
+            mallUserID: mallUserID,
+            BuyerName: decodeURIComponent(BuyerName),
+            Moid: Moid,
+            popupUrl: decodeURIComponent(popupUrl),
+            BuyerTel: userInfo.phone!,
+            BuyerEmail: decodeURIComponent(BuyerEmail),
+            BuyerAddr: BuyerAddr,
+            merchantKey: merchantKey,
+            Email1: Email1,
+            Email2: Email2,
+            discount: discount,
+            cardcode: cardcode,
+            Md5MallReserved: decodeURIComponent(Md5MallReserved),
+            orderid: orderid,
+            itemname: decodeURIComponent(itemname),
+            useragent: useragent,
+            sendType: "LMS",
+            amount: amount.toString(),
+            rdSendType: "rdlms",
+            chkLms: "M",
+            recvHP: userInfo.phone!,
+            buyType: "CASH",
+            chkAgree_paytus: "on"
+        });
+        payload.append("quantity", quantity.toString());
+        payload.append("quantity", quantity.toString());
+        payload.append("email", email);
+        payload.append("email", "");
 
         const sendGoogleRequest = await this.client.post("https://m.cultureland.co.kr/cpn/googleBuyProc.json", payload, {
             headers: {
-                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
                 "Referer": "https://m.cultureland.co.kr/cpn/googleApp.do"
             }
         });
 
         const sendGoogle: GooglePlayBuyResponse = sendGoogleRequest.data;
 
-        if (sendGoogle.errCd === "0" && sendGoogle.errMsg === "정상") {
-            // PASS
-        }
-        else if (sendGoogle.errCd == "1001") {
-            throw new CulturelandError("SafeLockRequiredError", "안심금고 서비스 가입 후 Google Play 기프트 코드 구매가 가능합니다.");
-        }
-        else if (sendGoogle.errCd == "1108") {
-            throw new CulturelandError("ItemUnavailableError", "현재 선택하신 상품은 일시 품절입니다. 다른 권종의 상품으로 구매해 주세요.");
-        }
-        else if (sendGoogle.errCd == "-998") {
-            throw new CulturelandError("PurchaseRestrictedError", "전용계좌,계좌이체,무통장입금으로 컬쳐캐쉬를 충전하신 경우 안전한 서비스 이용을 위해 구매 및 선물 서비스가 제한됩니다. 자세한 문의사항은 고객센터(1577-2111)로 문의주시기 바랍니다.");
-        }
-        else if (sendGoogle.pinBuyYn == "Y") {
-            throw new CulturelandError("DeliverFailError", "발송에 실패 하였습니다. 구매내역에서 재발송 해주세요!");
-        }
-        else if (sendGoogle.pinBuyYn == "N") {
-            throw new CulturelandError("PurchaseError", `구매에 실패 하였습니다. (실패 사유 : ${sendGoogle.errMsg}) 다시 구매해 주세요!`);
-        }
-        else if (sendGoogle.errMsg) {
-            throw new CulturelandError("PurchaseError", sendGoogle.errMsg.replace(/<br>/g, " "));
-        }
-        else {
-            throw new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
+        if (sendGoogle.errCd !== "0" || sendGoogle.errMsg !== "정상") {
+            if (sendGoogle.errCd == "1001") {
+                throw new CulturelandError("SafeLockRequiredError", "안심금고 서비스 가입 후 Google Play 기프트 코드 구매가 가능합니다.");
+            } else if (sendGoogle.errCd == "1108") {
+                throw new CulturelandError("ItemUnavailableError", "현재 선택하신 상품은 일시 품절입니다. 다른 권종의 상품으로 구매해 주세요.");
+            } else if (sendGoogle.errCd == "-998") {
+                throw new CulturelandError("PurchaseRestrictedError", "전용계좌,계좌이체,무통장입금으로 컬쳐캐쉬를 충전하신 경우 안전한 서비스 이용을 위해 구매 및 선물 서비스가 제한됩니다. 자세한 문의사항은 고객센터(1577-2111)로 문의주시기 바랍니다.");
+            } else if (sendGoogle.pinBuyYn == "Y") {
+                throw new CulturelandError("DeliverFailError", "발송에 실패 하였습니다. 구매내역에서 재발송 해주세요!");
+            } else if (sendGoogle.pinBuyYn == "N") {
+                throw new CulturelandError("PurchaseError", `구매에 실패 하였습니다. (실패 사유 : ${sendGoogle.errMsg}) 다시 구매해 주세요!`);
+            } else if (sendGoogle.errMsg) {
+                throw new CulturelandError("PurchaseError", sendGoogle.errMsg.replace(/<br>/g, " "));
+            } else {
+                throw new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
+            }
         }
 
         // 기프트 코드 구매 후 구매 내역
@@ -818,9 +804,8 @@ export class Cultureland {
             page: "1",
             tabFlag: "cash",
             inputHp: ""
-        }).toString(), {
+        }), {
             headers: {
-                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
                 "Referer": "https://m.cultureland.co.kr/cpn/googleBuyHis.do"
             }
         });
@@ -842,9 +827,8 @@ export class Cultureland {
                 page: "1",
                 tabFlag: "cash",
                 inputHp: ""
-            }).toString(), {
+            }), {
                 headers: {
-                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
                     "Referer": "https://m.cultureland.co.kr/cpn/googleBuyHis.do"
                 }
             });
@@ -977,9 +961,8 @@ export class Cultureland {
             addDay: (days - 1).toString(),
             pageSize: pageSize.toString(),
             page: page.toString()
-        }).toString(), {
+        }), {
             headers: {
-                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
                 "Referer": "https://m.cultureland.co.kr/tgl/cashSearch.do"
             }
         });
@@ -1034,9 +1017,10 @@ export class Cultureland {
 
         // MAC 주소가 없을 때
         if (!macAddress) {
-            const macAddressRequest = await this.client.post("https://m.cultureland.co.kr/mmb/macAddrSelect.json", "flag=newMacAddr", {
+            const macAddressRequest = await this.client.post("https://m.cultureland.co.kr/mmb/macAddrSelect.json", new URLSearchParams({
+                flag: "newMacAddr"
+            }), {
                 headers: {
-                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
                     "Referer": "https://m.cultureland.co.kr/mmb/loginMain.do"
                 }
             });
@@ -1066,7 +1050,7 @@ export class Cultureland {
             );
         }
 
-        const requestBody = new URLSearchParams({
+        const payload = new URLSearchParams({
             keepLoginInfo: "",
             hidWebType: "other",
             browserId: browserId!,
@@ -1083,11 +1067,10 @@ export class Cultureland {
             transkeyUuid: transKey.transkeyUuid,
             transkey_passwd: encryptedPassword.encrypted,
             transkey_HM_passwd: encryptedPassword.encryptedHmac
-        }).toString();
+        });
 
-        const loginRequest = await this.client.post("https://m.cultureland.co.kr/mmb/loginProcess.do", requestBody, {
+        const loginRequest = await this.client.post("https://m.cultureland.co.kr/mmb/loginProcess.do", payload, {
             headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
                 "Referer": "https://m.cultureland.co.kr/mmb/loginMain.do"
             },
             maxRedirects: 0,
@@ -1181,9 +1164,10 @@ export class Cultureland {
 
         // MAC 주소가 없을 때
         if (!macAddress) {
-            const macAddressRequest = await this.client.post("https://m.cultureland.co.kr/mmb/macAddrSelect.json", "flag=newMacAddr", {
+            const macAddressRequest = await this.client.post("https://m.cultureland.co.kr/mmb/macAddrSelect.json", new URLSearchParams({
+                flag: "newMacAddr"
+            }), {
                 headers: {
-                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
                     "Referer": "https://m.cultureland.co.kr/mmb/loginMain.do"
                 }
             });
@@ -1198,7 +1182,7 @@ export class Cultureland {
         const keypadLayout = await keypad.getKeypadLayout();
         const encryptedPassword = keypad.encryptPassword("", keypadLayout);
 
-        const requestBody = new URLSearchParams({
+        const payload = new URLSearchParams({
             keepLoginInfo: keepLoginInfo,
             hidWebType: "",
             browserId,
@@ -1213,11 +1197,10 @@ export class Cultureland {
             transkeyUuid: transKey.transkeyUuid,
             transkey_passwd: encryptedPassword.encrypted,
             transkey_HM_passwd: encryptedPassword.encryptedHmac
-        }).toString();
+        });
 
-        const loginRequest = await this.client.post("https://m.cultureland.co.kr/mmb/loginProcess.do", requestBody, {
+        const loginRequest = await this.client.post("https://m.cultureland.co.kr/mmb/loginProcess.do", payload, {
             headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
                 "Referer": "https://m.cultureland.co.kr/mmb/loginMain.do"
             },
             maxRedirects: 0,
