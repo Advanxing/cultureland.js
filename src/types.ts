@@ -1,9 +1,5 @@
 import Pin from "./Pin.js";
 
-export interface KeyStringValueStringObject {
-    [key: string]: string;
-}
-
 export interface VoucherResponse {
     resultCd: string;
     resultOther: string;
@@ -28,18 +24,50 @@ export type VoucherResultOther = {
     Balance: number
 }[];
 
-export interface CulturelandVoucher {
+export interface SpendHistory {
+    /**
+     * 내역 제목
+     */
+    title: string;
+    /**
+     * 사용 가맹점 이름
+     */
+    merchantName: string;
+    /**
+     * 사용 금액
+     */
     amount: number;
+    /**
+     * 사용 시각
+     */
+    timestamp: number;
+}
+
+export interface CulturelandVoucher {
+    /**
+     * 상품권의 금액
+     */
+    amount: number;
+    /**
+     * 상품권의 잔액
+     */
     balance: number;
+    /** 
+     * 상품권의 발행번호 (인증번호)
+     */
     certNo: string;
+    /**
+     * 상품권의 발행일 | `20241231`
+     */
     createdDate: string;
+    /**
+     * 상품권의 만료일 | `20291231`
+     */
     expiryDate: string;
-    spendHistory: {
-        title: string;
-        merchantName: string;
-        amount: number;
-        timestamp: number;
-    }[];
+    /**
+     * 상품권 사용 내역
+     */
+    spendHistory: SpendHistory[];
 }
 
 export interface BalanceResponse {
@@ -60,8 +88,17 @@ export interface BalanceResponse {
 }
 
 export interface CulturelandBalance {
+    /**
+     * 사용 가능 금액
+     */
     balance: number;
+    /**
+     * 보관중인 금액 (안심금고)
+     */
     safeBalance: number;
+    /**
+     * 총 잔액 (사용 가능 금액 + 보관중인 금액)
+     */
     totalBalance: number;
 }
 
@@ -436,7 +473,7 @@ export type CashLogsResponse = {
     }
 }[];
 
-export type CulturelandCashLogs = {
+export interface CulturelandCashLog {
     title: string,
     merchantCode: string,
     merchantName: string,
@@ -444,7 +481,9 @@ export type CulturelandCashLogs = {
     balance: number,
     spendType: string,
     timestamp: number
-}[];
+};
+
+export type CulturelandCashLogs = CulturelandCashLog[];
 
 export interface CulturelandLogin {
     keepLoginInfo?: string;
@@ -452,28 +491,6 @@ export interface CulturelandLogin {
     macAddress: string;
 }
 
-export interface CulturelandLoginWithKeepLoginInfo {
+export type CulturelandLoginWithKeepLoginInfo = CulturelandLogin & {
     userId: string;
-    keepLoginInfo?: string;
-    browserId: string;
-    macAddress: string;
-}
-
-export interface CreateTask {
-    errorId: number;
-    errorCode: string;
-    errorDescription: string;
-    taskId?: number;
-}
-
-export interface TaskResult {
-    errorId: number;
-    errorCode: string | null;
-    errorDescription: string | null;
-    solution: {
-        userAgent: string;
-        respKey?: string;
-        gRecaptchaResponse: string;
-    };
-    status: string;
 }

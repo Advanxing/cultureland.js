@@ -32,20 +32,16 @@ export class Pin {
             if (parts[3].length !== 4) { // 마지막 핀번호 부분이 4자리가 아니라면 검증 실패
                 return false;
             }
-        }
-        else if (parts[0].startsWith("41")) { // 핀번호가 41로 시작하지만 416 또는 4180으로 시작하지 않는다면 검증 실패
+        } else if (parts[0].startsWith("41")) { // 핀번호가 41로 시작하지만 416 또는 4180으로 시작하지 않는다면 검증 실패
             return false;
-        }
-        else if (parts[0].match(/^31[1-9]/) && parts[3].length === 4) { // 핀번호가 31로 시작하고 3번째 자리가 1~9이고, 마지막 핀번호 부분이 4자리라면
+        } else if (parts[0].match(/^31[1-9]/) && parts[3].length === 4) { // 핀번호가 31로 시작하고 3번째 자리가 1~9이고, 마지막 핀번호 부분이 4자리라면
             // 검증 성공 (2024년 3월에 추가된 핀번호 형식)
             // /assets/js/egovframework/com/cland/was/util/ClandCmmUtl.js L1281
-        }
-        else if (["2", "3", "4", "5"].includes(parts[0].charAt(0))) { // 핀번호가 2, 3, 4, 5로 시작한다면 (문화상품권, 온라인문화상품권)
+        } else if (["2", "3", "4", "5"].includes(parts[0].charAt(0))) { // 핀번호가 2, 3, 4, 5로 시작한다면 (문화상품권, 온라인문화상품권)
             if (parts[3].length !== 6) { // 마지막 핀번호 부분이 6자리가 아니라면 검증 실패
                 return false;
             }
-        }
-        else { // 위 조건에 하나도 맞지 않는다면 검증 실패
+        } else { // 위 조건에 하나도 맞지 않는다면 검증 실패
             return false;
         }
 
