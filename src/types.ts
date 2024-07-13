@@ -1,5 +1,7 @@
 import Pin from "./Pin.js";
 
+export type CulturelandPinParts = [string, string, string, string];
+
 export interface VoucherResponse {
     resultCd: string;
     resultOther: string;
@@ -103,7 +105,13 @@ export interface CulturelandBalance {
 }
 
 export interface CulturelandCharge {
-    message: string;
+    /**
+     * 성공 여부 메시지
+     */
+    message: "충전 완료" | "상품권지갑 보관" | "잔액이 0원인 상품권" | "상품권 번호 불일치";
+    /**
+     * 충전 금액
+     */
     amount: number;
 }
 
@@ -120,7 +128,13 @@ export interface PhoneInfoResponse {
 }
 
 export interface CulturelandGift {
+    /**
+     * 선물 바코드 번호
+     */
     pin: Pin;
+    /**
+     * 선물 바코드 URL
+     */
     url: string;
 }
 
@@ -234,7 +248,13 @@ export interface GiftLimitResponse {
 }
 
 export interface CulturelandGiftLimit {
+    /**
+     * 잔여 선물 한도
+     */
     remain: number;
+    /**
+     * 최대 선물 한도
+     */
     limit: number;
 }
 
@@ -244,6 +264,9 @@ export interface ChangeCoupangCashResponse {
 }
 
 export interface CulturelandChangeCoupangCash {
+    /**
+     * (전환 수수료 6%가 차감된) 전환된 금액
+     */
     amount: number;
 }
 
@@ -253,12 +276,24 @@ export interface ChangeSmileCashResponse {
 }
 
 export interface CulturelandChangeSmileCash {
+    /**
+     * (전환 수수료 5%가 과금된) 과금된 금액
+     */
     amount: number;
 }
 
 export interface CulturelandGooglePlay {
+    /**
+     * 기프트 코드 번호
+     */
     pin: string;
+    /**
+     * 자동 입력 URL
+     */
     url: string;
+    /**
+     * 카드번호
+     */
     certNo: string;
 }
 
@@ -440,21 +475,57 @@ export interface UserInfoResponse {
 }
 
 export interface CulturelandUser {
+    /**
+     * 휴대폰 번호
+     */
     phone: string;
+    /**
+     * 안심금고 레벨
+     */
     safeLevel: number;
+    /**
+     * 안심금고 비밀번호 여부
+     */
     safePassword: boolean;
+    /**
+     * 가입 시각
+     */
     registerDate: number;
+    /**
+     * 컬쳐랜드 ID
+     */
     userId: string;
+    /**
+     * 유저 고유 번호
+     */
     userKey: string;
+    /**
+     * 접속 IP
+     */
     userIp: string;
+    /**
+     * 유저 고유 인덱스
+     */
     index: number;
+    /**
+     * 유저 종류
+     */
     category: string;
 }
 
 export interface CulturelandMember {
+    /**
+     * 컬쳐랜드 ID
+     */
     id?: string;
+    /**
+     * 멤버의 이름 | `홍*동`
+     */
     name?: string;
-    verificationLevel?: string;
+    /**
+     * 멤버의 인증 등급
+     */
+    verificationLevel?: "본인인증";
 }
 
 export type CashLogsResponse = {
@@ -474,23 +545,54 @@ export type CashLogsResponse = {
 }[];
 
 export interface CulturelandCashLog {
+    /**
+     * 내역 제목
+     */
     title: string,
+    /**
+     * 사용 가맹점 코드
+     */
     merchantCode: string,
+    /**
+     * 사용 가맹점 이름
+     */
     merchantName: string,
+    /**
+     * 사용 금액
+     */
     amount: number,
+    /**
+     * 사용 후 남은 잔액
+     */
     balance: number,
-    spendType: string,
+    /**
+     * 사용 종류
+     */
+    spendType: "사용" | "사용취소" | "충전",
+    /**
+     * 사용 시각
+     */
     timestamp: number
 };
 
-export type CulturelandCashLogs = CulturelandCashLog[];
-
 export interface CulturelandLogin {
+    /**
+     * 로그인 유지 쿠키
+     */
     keepLoginInfo?: string;
+    /**
+     * 브라우저 아이디
+     */
     browserId: string;
+    /**
+     * 임의의 MAC 주소
+     */
     macAddress: string;
 }
 
 export type CulturelandLoginWithKeepLoginInfo = CulturelandLogin & {
+    /**
+     * 컬쳐랜드 ID
+     */
     userId: string;
 }

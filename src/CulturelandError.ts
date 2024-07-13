@@ -14,25 +14,29 @@
  * "CaptchaError" - 캡챠 해결에 실패한 경우
  * "LoginError" - 로그인에 실패한 경우
  * "LoginRestrictedError" - 계정 혹은 IP 주소가 로그인을 제한당한 경우
+ * "PinValidationError" - 컬쳐랜드 핀 번호 형식이 올바르지 않은 경우
  */
-export type CulturelandErrorNames = "ResponseError" | "LoginRequiredError" | "InvalidPinError" | "RangeError" | "SafeLockRequiredError" | "ItemUnavailableError" | "PurchaseRestrictedError" | "DeliverFailError" | "PurchaseError" | "LookupError" | "CaptchaError" | "LoginError" | "LoginRestrictedError";
+export type CulturelandErrorNames =
+    "ResponseError" | "LoginRequiredError" | "InvalidPinError" |
+    "RangeError" | "SafeLockRequiredError" | "ItemUnavailableError" |
+    "PurchaseRestrictedError" | "DeliverFailError" | "PurchaseError" |
+    "LookupError" | "CaptchaError" | "LoginError" | "LoginRestrictedError" |
+    "PinValidationError";
 
 /**
  * 커스텀 오류 클래스입니다.
  * 오류가 발생할 경우 Error 대신 이 클래스가 반환됩니다.
  */
-export class CulturelandError {
+export class CulturelandError extends Error {
     private _name: CulturelandErrorNames;
-    private _message: string;
 
     /**
-     * 커스텀 오류 클래스입니다.
      * @param name 오류 이름
      * @param message 오류 메시지
      */
     public constructor(name: CulturelandErrorNames, message: string) {
+        super(message);
         this._name = name;
-        this._message = message;
     }
 
     /**
@@ -40,21 +44,6 @@ export class CulturelandError {
      */
     public get name() {
         return this._name;
-    }
-
-    /**
-     * 오류 메시지
-     */
-    public get message() {
-        return this._message;
-    }
-
-    /**
-     * @example
-     * `${name}: ${message}`
-     */
-    public toString() {
-        return `${this._name}: ${this._message}`;
     }
 }
 

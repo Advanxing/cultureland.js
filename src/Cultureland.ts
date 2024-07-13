@@ -4,10 +4,10 @@ import { HttpCookieAgent, HttpsCookieAgent } from "http-cookie-agent/http";
 import { parse } from "node-html-parser";
 import { Cookie, CookieJar } from "tough-cookie";
 import pkg from "../package.json";
-import CulturelandError from "./Error.js";
+import CulturelandError from "./CulturelandError.js";
 import mTransKey from "./mTranskey/Transkey.js";
 import Pin from "./Pin.js";
-import { BalanceResponse, CashLogsResponse, ChangeCoupangCashResponse, ChangeSmileCashResponse, CulturelandBalance, CulturelandCashLogs, CulturelandChangeCoupangCash, CulturelandChangeSmileCash, CulturelandCharge, CulturelandGift, CulturelandGiftLimit, CulturelandGooglePlay, CulturelandLogin, CulturelandLoginWithKeepLoginInfo, CulturelandMember, CulturelandUser, CulturelandVoucher, GiftLimitResponse, GooglePlayBuyResponse, GooglePlayHistoryResponse, PhoneInfoResponse, UserInfoResponse, VoucherResponse, VoucherResultOther } from "./types.js";
+import { BalanceResponse, CashLogsResponse, ChangeCoupangCashResponse, ChangeSmileCashResponse, CulturelandBalance, CulturelandCashLog, CulturelandChangeCoupangCash, CulturelandChangeSmileCash, CulturelandCharge, CulturelandGift, CulturelandGiftLimit, CulturelandGooglePlay, CulturelandLogin, CulturelandLoginWithKeepLoginInfo, CulturelandMember, CulturelandUser, CulturelandVoucher, GiftLimitResponse, GooglePlayBuyResponse, GooglePlayHistoryResponse, PhoneInfoResponse, UserInfoResponse, VoucherResponse, VoucherResultOther } from "./types.js";
 
 export class Cultureland {
     public cookieJar = new CookieJar();
@@ -109,7 +109,7 @@ export class Cultureland {
      * 컬쳐랜드 계정의 컬쳐캐쉬 잔액을 가져옵니다.
      * @example
      * await client.getBalance();
-     * @returns {CulturelandBalance} 잔액 정보
+     * @returns {CulturelandBalance} 보유 잔액 정보
      */
     public async getBalance(): Promise<CulturelandBalance> {
         if (!(await this.isLogin())) throw new CulturelandError("LoginRequiredError", "로그인이 필요한 서비스 입니다.");
@@ -142,8 +142,7 @@ export class Cultureland {
      *     new Pin("3110-0123-4567-8901"),
      *     new Pin("3110-0123-4567-8901")
      * ]);
-     * @returns `message`: string - 성공 여부 메시지 | `충전 완료`, `상품권지갑 보관`, `잔액이 0원인 상품권`, `상품권 번호 불일치`
-     * @returns `amount`: number - 충전 금액
+     * @returns {CulturelandCharge[]} 충전 결과
      */
     public async charge(pins: Pin[]): Promise<CulturelandCharge[]> {
         if (!(await this.isLogin())) throw new CulturelandError("LoginRequiredError", "로그인이 필요한 서비스 입니다.");
@@ -247,7 +246,7 @@ export class Cultureland {
             const chargeResult = parsedResults[i].getElementsByTagName("td");
 
             results.push({
-                message: chargeResult[2].innerText,
+                message: chargeResult[2].innerText as CulturelandCharge["message"],
                 amount: parseInt(chargeResult[3].innerText.replace(/,/g, "").replace("원", ""))
             });
         }
@@ -262,8 +261,7 @@ export class Cultureland {
      * @example
      * // 5000원권 1장을 나에게 선물
      * await client.gift(5000, 1);
-     * @returns `pin`: Pin - 선물 바코드 번호
-     * @returns `url`: string - 선물 바코드 URL
+     * @returns {CulturelandGift} 선물 결과
      */
     public async gift(amount: number, quantity = 1): Promise<CulturelandGift> {
         if (!(await this.isLogin())) throw new CulturelandError("LoginRequiredError", "로그인이 필요한 서비스 입니다.");
@@ -353,8 +351,7 @@ export class Cultureland {
      * 선물하기 API에서 선물 한도를 가져옵니다.
      * @example
      * await client.getGiftLimit();
-     * @returns `remain`: number - 잔여 선물 한도
-     * @returns `limit`: number - 최대 선물 한도
+     * @returns {CulturelandGiftLimit} 선물 한도
      */
     public async getGiftLimit(): Promise<CulturelandGiftLimit> {
         if (!(await this.isLogin())) throw new CulturelandError("LoginRequiredError", "로그인이 필요한 서비스 입니다.");
@@ -383,7 +380,7 @@ export class Cultureland {
      * // 컬쳐캐쉬 10000원 차감 & 쿠팡캐시 9400원 충전
      * const coupangCash = await client.changeCoupangCash(10000);
      * coupangCash.amount === 9400; // true
-     * @returns `amount`: number - (전환 수수료 6%가 차감된) 전환된 금액
+     * @returns {CulturelandChangeCoupangCash} 쿠팡캐시 전환 결과
      */
     public async changeCoupangCash(amount: number): Promise<CulturelandChangeCoupangCash> {
         if (!(await this.isLogin())) throw new CulturelandError("LoginRequiredError", "로그인이 필요한 서비스 입니다.");
@@ -438,7 +435,7 @@ export class Cultureland {
      * // 컬쳐캐쉬 10500원 차감 & 스마일캐시 10000원 충전
      * const smileCash = await client.changeSmileCash(10000);
      * smileCash.amount === 10500; // true
-     * @returns `amount`: number - (전환 수수료 5%가 과금된) 과금된 금액
+     * @returns {CulturelandChangeSmileCash} 스마일캐시 전환 결과
      */
     public async changeSmileCash(amount: number): Promise<CulturelandChangeSmileCash> {
         if (!(await this.isLogin())) throw new CulturelandError("LoginRequiredError", "로그인이 필요한 서비스 입니다.");
@@ -492,9 +489,7 @@ export class Cultureland {
      * @example
      * // 10000원권 1장을 구매하여 나에게 전송, 컬쳐캐쉬 10300원 차감
      * await client.giftGooglePlay(10000, 1);
-     * @returns `pin`: string - 기프트 코드 번호
-     * @returns `url`: string - 자동 입력 URL
-     * @returns `certNo`: string - 카드번호
+     * @returns {CulturelandGooglePlay[]} 전환 결과
      */
     public async giftGooglePlay(amount: number, quantity = 1): Promise<CulturelandGooglePlay[]> {
         if (!(await this.isLogin())) throw new CulturelandError("LoginRequiredError", "로그인이 필요한 서비스 입니다.");
@@ -739,15 +734,7 @@ export class Cultureland {
      * 안심금고 API에서 유저 정보를 가져옵니다.
      * @example
      * await client.getUserInfo();
-     * @returns `phone`: string - 휴대폰 번호
-     * @returns `safeLevel`: number - 안심금고 레벨
-     * @returns `safePassword`: boolean - 안심금고 비밀번호 여부
-     * @returns `registerDate`: number - 가입일 타임스탬프
-     * @returns `userId`: string - 컬쳐랜드 ID
-     * @returns `userKey`: string - 유저 고유 번호
-     * @returns `userIp`: string - 접속 IP
-     * @returns `index`: number - 유저 고유 인덱스
-     * @returns `category`: string - 유저 종류
+     * @returns {CulturelandUser} 유저 정보
      */
     public async getUserInfo(): Promise<CulturelandUser> {
         if (!(await this.isLogin())) throw new CulturelandError("LoginRequiredError", "로그인이 필요한 서비스 입니다.");
@@ -777,9 +764,7 @@ export class Cultureland {
      * 내정보 페이지에서 멤버 정보를 가져옵니다.
      * @example
      * await client.getMemberInfo();
-     * @returns `id`: string - 컬쳐랜드 ID
-     * @returns `name`: string - 멤버의 이름 | `홍*동`
-     * @returns `verificationLevel`: string - 멤버의 인증 등급 | `본인인증`
+     * @returns {CulturelandMember} 멤버 정보
      */
     public async getMemberInfo(): Promise<CulturelandMember> {
         if (!(await this.isLogin())) throw new CulturelandError("LoginRequiredError", "로그인이 필요한 서비스 입니다.");
@@ -796,7 +781,7 @@ export class Cultureland {
         return {
             id: memberData.getElementsByTagName("span")[0].innerText,
             name: memberData.getElementsByTagName("strong")[0].innerText.trim(),
-            verificationLevel: memberData.getElementsByTagName("p")[0].innerText
+            verificationLevel: memberData.getElementsByTagName("p")[0].innerText as CulturelandMember["verificationLevel"]
         };
     }
 
@@ -808,15 +793,9 @@ export class Cultureland {
      * @example
      * // 최근 30일간의 내역 중 1페이지의 내역
      * await client.getCultureCashLogs(30, 20, 1);
-     * @returns `[].title`: string - 내역 제목
-     * @returns `[].merchantCode`: string - 사용 가맹점 코드
-     * @returns `[].merchantName`: string - 사용 가맹점 이름
-     * @returns `[].amount`: number - 사용 금액
-     * @returns `[].balance`: number - 사용 후 남은 잔액
-     * @returns `[].spendType`: string - 사용 종류 | `사용`, `사용취소`, `충전`
-     * @returns `[].timestamp`: number - 내역 시간
+     * @returns {CulturelandCashLog[]} 컬쳐 캐시 사용 내역
      */
-    public async getCultureCashLogs(days: number, pageSize = 20, page = 1): Promise<CulturelandCashLogs> {
+    public async getCultureCashLogs(days: number, pageSize = 20, page = 1): Promise<CulturelandCashLog[]> {
         if (!(await this.isLogin())) throw new CulturelandError("LoginRequiredError", "로그인이 필요한 서비스 입니다.");
 
         const cashLogsRequest = await this.client.post("https://m.cultureland.co.kr/tgl/cashList.json", new URLSearchParams({
@@ -837,7 +816,7 @@ export class Cultureland {
             merchantName: log.item.memberName,
             amount: parseInt(log.item.inAmount) - parseInt(log.item.outAmount),
             balance: parseInt(log.item.balance),
-            spendType: log.item.accType,
+            spendType: log.item.accType as CulturelandCashLog["spendType"],
             timestamp: Date.parse(log.item.accDate.replace(/(\d{4})(\d{2})(\d{2})/g, "$1-$2-$3") + " " + log.item.accTime.replace(/(\d{2})(\d{2})(\d{2})/g, "$1:$2:$3"))
         }));
     }
@@ -846,7 +825,7 @@ export class Cultureland {
      * 현재 세션이 컬쳐랜드에 로그인되어 있는지 확인합니다.
      * @example
      * await client.isLogin();
-     * @returns 로그인 여부
+     * @returns {boolean} 로그인 여부
      */
     public async isLogin() {
         const isLoginRequest = await this.client.post("https://m.cultureland.co.kr/mmb/isLogin.json");
@@ -863,9 +842,7 @@ export class Cultureland {
      * @param macAddress 임의의 MAC 주소 `/assets/js/egovframework/com/cland/was/mmb/loginMain.js?version=1.0` L28
      * @example
      * await client.login("test1234", "test1234!");
-     * @returns `keepLoginInfo`: string - 로그인 유지 정보
-     * @returns `browserId`: string - 브라우저 아이디
-     * @returns `macAddress`: string - 임의의 MAC 주소
+     * @returns {CulturelandLogin} 로그인 결과
      */
     public async login(id: string, password: string, captchaKey?: string, browserId?: string, macAddress?: string): Promise<CulturelandLogin> {
         // 브라우저 아이디가 없을 때
@@ -979,10 +956,7 @@ export class Cultureland {
      *     .then(cookie => decodeURIComponent(cookie.value));
      * 
      * await client.loginWithKeepLoginInfo(keepLoginInfo);
-     * @returns `userId` 컬쳐랜드 ID
-     * @returns `keepLoginInfo`?: string - 로그인 유지 쿠키
-     * @returns `browserId`: string - 브라우저 아이디
-     * @returns `macAddress`: string - 임의의 MAC 주소
+     * @returns {CulturelandLoginWithKeepLoginInfo} 로그인 결과
      */
     public async loginWithKeepLoginInfo(keepLoginInfo: string, browserId?: string, macAddress?: string): Promise<CulturelandLoginWithKeepLoginInfo> {
         // 로그인 유지 정보를 쿠키에 저장
