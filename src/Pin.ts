@@ -14,13 +14,18 @@ export class Pin {
      * @param pin 상품권의 핀번호
      * @example
      * // 올바은 핀 번호일 경우:
-     * const pin = new Pin("3110-0123-4567-8901");
+     * const pin = new Pin("3110-0123-4567-8901"); // new Pin("3110", "0123", "4567", "8901"), new Pin(["3110", "0123", "4567", "8901"])
      * console.log(pin.parts); // Output: ["3110", "0123", "4567", "8901"]
      * 
      * // 올바르지 않은 핀 번호일 경우:
      * const pin = new Pin("swasd------"); // CulturelandError [PinValidationError]: 핀 번호 Regex 검증에 실패했습니다.
      */
-    public constructor(pin: string) {
+    public constructor(pin: string)
+    public constructor(pin: CulturelandPinParts)
+    public constructor(pinPart1: string, pinPart2: string, pinPart3: string, pinPart4: string)
+    public constructor(pin: string | CulturelandPinParts, part2?: string, part3?: string, part4?: string) {
+        if (pin instanceof Array) pin = pin.join("-");
+        else if (part4) pin = `${pin}-${part2}-${part3}-${part4}`;
         this._parts = Pin.format(pin);
     }
 
@@ -52,7 +57,7 @@ export class Pin {
      * @returns {CulturelandPinParts} 핀번호를 4자리씩 끊은 배열 | ["3110", "0123", "4567", "8901"]
      */
     public static format(pin: string): CulturelandPinParts {
-        const pinMatches = pin.match(/(\d{4})\D*(\d{4})\D*(\d{4})\D*(\d{6}|\d{4})/);
+        const pinMatches = pin.match(/(\d{4})\D*(\d{4})\D*(\d{4})\D*(\d{6}|\d{4})/); // 1111!@#!@#@#@!#!@#-1111-1111DSSASDA-1111와 같은 형식도 PASS됨.
         if (!pinMatches) { // 핀번호 regex에 맞지 않는다면 검증 실패
             throw new CulturelandError("PinValidationError", "핀 번호 Regex 검증에 실패했습니다.");
         }

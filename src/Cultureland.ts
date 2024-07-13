@@ -132,7 +132,7 @@ export class Cultureland {
     /**
      * 컬쳐랜드상품권(모바일문화상품권) 및 문화상품권(18자리)을 컬쳐캐쉬로 충전합니다.
      * 지류/온라인문화상품권(18자리)은 2022.12.31 이전 발행 건만 충전 가능합니다.
-     * @param pins 상품권(들)의 핀번호
+     * @param pin 상품권(들)의 핀번호
      * @example
      * // 한 개의 핀번호 충전
      * await client.charge(new Pin("3110-0123-4567-8901"));
@@ -142,16 +142,16 @@ export class Cultureland {
      *     new Pin("3110-0123-4567-8901"),
      *     new Pin("3110-0123-4567-8901")
      * ]);
-     * @returns {CulturelandCharge[]} 충전 결과
+     * @returns 충전 결과
      */
-    public async charge(pins: Pin[]): Promise<CulturelandCharge[]> {
+    public async charge(pin: Pin): Promise<CulturelandCharge>
+    public async charge(pins: Pin[]): Promise<CulturelandCharge[]>
+    public async charge(pins: Pin | Pin[]): Promise<CulturelandCharge | CulturelandCharge[]> {
         if (!(await this.isLogin())) throw new CulturelandError("LoginRequiredError", "로그인이 필요한 서비스 입니다.");
 
-        if (pins.length < 1 || pins.length > 10) throw new CulturelandError("RangeError", "핀번호는 1개 이상, 10개 이하여야 합니다.");
+        if (!(pins instanceof Array)) pins = [pins];
 
-        // 유효하지 않은 핀번호가 있다면
-        const invalidIndex = pins.findIndex(pin => !pin.parts);
-        if (invalidIndex !== -1) throw new CulturelandError("InvalidPinError", (invalidIndex + 1) + "번째 핀번호가 유효하지 않습니다.");
+        if (pins.length < 1 || pins.length > 10) throw new CulturelandError("RangeError", "핀번호는 1개 이상, 10개 이하여야 합니다.");
 
         const onlyMobileVouchers = pins.every(res => res.parts![3].length === 4); // 모바일문화상품권만 있는지
 
@@ -165,13 +165,12 @@ export class Cultureland {
         const transKey = new mTransKey(this.cookieJar);
         const servletData = await transKey.getServletData();
 
-        let pinCount = 1; // scr0x이 아닌 scr1x부터 시작하기 때문에 1부터 시작
         const scratches: Record<string, string> = {}; // scratch (핀번호)
-        const keyboards: Record<string, string>[] = []; // keyIndex, keyboardType, fieldType
-        const transkeys: Record<string, string>[] = []; // transkey, transkey_HM
+        const fourthScratches: Record<string, string> = {}; // 네번째 핀 번호 암호화 정보
 
-        for (const pin of pins) {
-            if (!pin.parts) continue; // 유효하지 않은 핀번호의 경우 건너뛰기, 위에서 이미 확인하여 의미 없지만 린팅 이슈로 추가
+        await Promise.all(Array.from({ length: 10 }, (_, index) => index).map(async i => {
+            const parts = pins[i]?.parts || ["", "", "", ""];
+            const pinCount = i + 1; // scr0x이 아닌 scr1x부터 시작하기 때문에 1부터 시작
 
             const scr4 = `scr${pinCount}4`;
             const txtScr4 = `txtScr${pinCount}4`;
@@ -179,47 +178,32 @@ export class Cultureland {
             // <input type="password" name="{scr4}" id="{txtScr4}">
             const keypad = transKey.createKeypad(servletData, "number", txtScr4, scr4);
             const keypadLayout = await keypad.getKeypadLayout();
-            const encryptedPin = keypad.encryptPassword(pin.parts[3], keypadLayout);
+            const encryptedPin = keypad.encryptPassword(parts[3], keypadLayout);
 
             // scratch
-            scratches[`scr${pinCount}1`] = pin.parts[0];
-            scratches[`scr${pinCount}2`] = pin.parts[1];
-            scratches[`scr${pinCount}3`] = pin.parts[2];
-            scratches[scr4] = "*".repeat(pin.parts[3].length);
+            scratches[`scr${pinCount}1`] = parts[0];
+            scratches[`scr${pinCount}2`] = parts[1];
+            scratches[`scr${pinCount}3`] = parts[2];
+            scratches[scr4] = "*".repeat(parts[3].length);
 
             // keyboard
-            const keyboard: Record<string, string> = {};
-            keyboard["keyIndex_" + txtScr4] = keypad.keyIndex;
-            keyboard["keyboardType_" + txtScr4] = keypad.keyboardType + "Mobile";
-            keyboard["fieldType_" + txtScr4] = keypad.fieldType;
-            keyboards.push(keyboard);
+            fourthScratches["keyIndex_" + txtScr4] = keypad.keyIndex;
+            fourthScratches["keyboardType_" + txtScr4] = keypad.keyboardType + "Mobile";
+            fourthScratches["fieldType_" + txtScr4] = keypad.fieldType;
 
             // transkey
-            const transkey: Record<string, string> = {};
-            transkey["transkey_" + txtScr4] = encryptedPin.encrypted;
-            transkey["transkey_HM_" + txtScr4] = encryptedPin.encryptedHmac;
-            transkeys.push(transkey);
-
-            pinCount++;
-        }
+            fourthScratches["transkey_" + txtScr4] = encryptedPin.encrypted;
+            fourthScratches["transkey_HM_" + txtScr4] = encryptedPin.encryptedHmac;
+        }));
 
         let payload: Record<string, string> = {
+            versionCode: "",
             ...scratches,
             seedKey: transKey.encryptedSessionKey,
             initTime: servletData.initTime,
-            transkeyUuid: transKey.transkeyUuid
+            transkeyUuid: transKey.transkeyUuid,
+            ...fourthScratches
         };
-
-        for (let i = 0; i < keyboards.length; i++) {
-            const keyboard = keyboards[i];
-            const transkey = transkeys[i];
-
-            payload = {
-                ...payload,
-                ...keyboard,
-                ...transkey
-            };
-        }
 
         const chargeRequest = await this.client.post(
             onlyMobileVouchers ?
