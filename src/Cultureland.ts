@@ -57,7 +57,6 @@ export class Cultureland {
         const keypadLayout = await keypad.getKeypadLayout();
         const encryptedPin = keypad.encryptPassword(pin.parts[3], keypadLayout);
 
-        // culturelandInput 실제로 같은 키 4개가 사용되어 그대로 반영하였습니다.
         const payload = new URLSearchParams({
             "culturelandNo": pin.parts[0] + pin.parts[1] + pin.parts[2],
             "seedKey": transKey.encryptedSessionKey,

@@ -1,2 +1,7 @@
 !dist/
 test.js
+src/
+tsconfig.json
+tsup.config.ts
+package-lock.json
+.gitignore
