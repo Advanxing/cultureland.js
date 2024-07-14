@@ -577,9 +577,13 @@ export interface CulturelandCashLog {
 
 export interface CulturelandLogin {
     /**
+     * 컬쳐랜드 ID
+     */
+    userId: string;
+    /**
      * 로그인 유지 쿠키
      */
-    keepLoginInfo?: string;
+    keepLoginConfig?: string;
     /**
      * 브라우저 아이디
      */
@@ -588,11 +592,4 @@ export interface CulturelandLogin {
      * 임의의 MAC 주소
      */
     macAddress: string;
-}
-
-export type CulturelandLoginWithKeepLoginInfo = CulturelandLogin & {
-    /**
-     * 컬쳐랜드 ID
-     */
-    userId: string;
 }
