@@ -11,14 +11,16 @@ import { BalanceResponse, CashLogsResponse, ChangeCoupangCashResponse, ChangeSmi
 import { randomString } from "./utils.js";
 
 export class Cultureland {
-    public cookieJar = new CookieJar();
-    public client = axios.create({
+    private _cookieJar = new CookieJar();
+    private _client = axios.create({
         headers: {
             "User-Agent": `cultureland.js/${pkg.version} (+${pkg.repository.url})`
         },
         httpAgent: new HttpCookieAgent({ cookies: { jar: this.cookieJar } }),
         httpsAgent: new HttpsCookieAgent({ cookies: { jar: this.cookieJar } })
     });
+    private _id?: string;
+    private _password?: string;
 
     /**
      * 컬쳐랜드 모바일웹을 자동화해주는 비공식 라이브러리입니다.
@@ -32,6 +34,22 @@ export class Cultureland {
      * const proxiedClient = new Cultureland({ host: "localhost", port: 3000 });
      */
     public constructor(public proxy?: AxiosProxyConfig) { }
+
+    public get cookieJar() {
+        return this._cookieJar;
+    }
+
+    public get client() {
+        return this._client;
+    }
+
+    public get id() {
+        return this._id;
+    }
+
+    public get password() {
+        return this._password;
+    }
 
     /**
      * 컬쳐랜드상품권(모바일문화상품권, 16자리)의 정보를 가져옵니다.
@@ -945,6 +963,9 @@ export class Cultureland {
             const errorCode = errorPage.match(/var errCode = "(\d+)";/)?.[1];
             throw new CulturelandError("LoginRestrictedError", `컬쳐랜드 로그인 정책에 따라 로그인이 제한되었습니다.${errorCode ? ` (제한코드: ${errorCode})` : ""}`);
         }
+
+        this.id = id;
+        this.password = arg1 || arg0;
 
         // 로그인 유지 정보 가져오기
         const KeepLoginConfigCookie = loginRequest.headers["set-cookie"]?.find(cookie => cookie.startsWith("KeepLoginConfig="));
