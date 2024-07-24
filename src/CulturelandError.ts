@@ -34,7 +34,7 @@ export class CulturelandError extends Error {
      * @param name 오류 이름
      * @param message 오류 메시지
      */
-    public constructor(name: CulturelandErrorNames, message: string) {
+    public constructor(name: CulturelandErrorNames, message: string, public additionalValues?: any) {
         super(message);
         this._name = name;
     }

@@ -70,7 +70,7 @@ export class Cultureland {
 
         // 핀번호가 유효하지 않거나 41로 시작하지 않거나 311~319로 시작하지 않는다면 리턴
         // /assets/js/egovframework/com/cland/was/util/ClandCmmUtl.js L1281
-        if (!pin.parts || !(pin.parts[0].startsWith("41") || /^31[1-9]/.test(pin.parts[0]))) throw new CulturelandError("InvalidPinError", "정확한 모바일 상품권 번호를 입력하세요.");
+        if (!pin.parts || !(pin.parts[0].startsWith("41") || /^31[1-9]/.test(pin.parts[0]))) throw new CulturelandError("InvalidPinError", "정확한 모바일 상품권 번호를 입력하세요.", { pin });
 
         const transKey = new mTransKey(this.cookieJar);
         const servletData = await transKey.getServletData();
@@ -155,11 +155,20 @@ export class Cultureland {
     /**
      * 컬쳐랜드상품권(모바일문화상품권) 및 문화상품권(18자리)을 컬쳐캐쉬로 충전합니다.
      * 지류/온라인문화상품권(18자리)은 2022.12.31 이전 발행 건만 충전 가능합니다.
-     * @param pin 상품권(들)의 핀번호
+     * 상품권이 한개일 경우 핀 핀 번호가 틀리면 InvalidPinError를 throw합니다.
+     * @param pin 상품권의 핀번호
      * @example
      * // 한 개의 핀번호 충전
      * await client.charge(new Pin("3110-0123-4567-8901"));
-     * 
+     * @returns 충전 결과
+     */
+    public async charge(pin: Pin): Promise<CulturelandCharge>
+    /**
+     * 컬쳐랜드상품권(모바일문화상품권) 및 문화상품권(18자리)을 컬쳐캐쉬로 충전합니다.
+     * 지류/온라인문화상품권(18자리)은 2022.12.31 이전 발행 건만 충전 가능합니다.
+     * 상품권이 여러개일 경우 핀 번호가 틀려도 에러를 throw하지 않습니다.
+     * @param pins 상품권들의 핀번호
+     * @example
      * // 여러개의 핀번호 충전
      * await client.charge([
      *     new Pin("3110-0123-4567-8901"),
@@ -167,12 +176,15 @@ export class Cultureland {
      * ]);
      * @returns 충전 결과
      */
-    public async charge(pin: Pin): Promise<CulturelandCharge>
     public async charge(pins: Pin[]): Promise<CulturelandCharge[]>
     public async charge(pins: Pin | Pin[]): Promise<CulturelandCharge | CulturelandCharge[]> {
         if (!(await this.isLogin())) throw new CulturelandError("LoginRequiredError", "로그인이 필요한 서비스 입니다.");
 
-        if (!(pins instanceof Array)) pins = [pins];
+        let isSinglePin = false;
+        if (!(pins instanceof Array)) {
+            pins = [pins];
+            isSinglePin = true;
+        }
 
         if (pins.length < 1 || pins.length > 10) throw new CulturelandError("RangeError", "핀번호는 1개 이상, 10개 이하여야 합니다.");
 
@@ -256,6 +268,11 @@ export class Cultureland {
                 message: chargeResult[2].innerText as CulturelandCharge["message"],
                 amount: parseInt(chargeResult[3].innerText.replace(/,/g, "").replace("원", ""))
             });
+        }
+
+        if (isSinglePin) {
+            if (results[0].amount <= 0) throw new CulturelandError("InvalidPinError", results[0].message || "핀번호가 유효하지 않습니다.", { pin: pins[0].toString() });
+            return results[0];
         }
 
         return results;
