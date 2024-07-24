@@ -28,7 +28,7 @@ export class Pin {
         else if (part4) pin = `${pin}-${part2}-${part3}-${part4}`;
         const validationResult = Pin.validateClientSide(pin);
         if (!validationResult) throw new CulturelandError("PinValidationError", "존재하지 않는 상품권입니다.");
-        this._parts = Pin.format(pin);
+        this._parts = Pin.format(pin)!;
     }
 
     /**
@@ -55,8 +55,8 @@ export class Pin {
      * 핀번호를 CulturelandPinParts 형식으로 포매팅합니다.
      */
     public static format(pin: string) {
-        if (!Pin.validateClientSide()) return null;
-        const pinMatches = pin.match(/(\d{4})\D*(\d{4})\D*(\d{4})\D*(\d{6}|\d{4})/);
+        if (!Pin.validateClientSide(pin)) return null;
+        const pinMatches = pin.match(/(\d{4})\D*(\d{4})\D*(\d{4})\D*(\d{6}|\d{4})/)!;
         const parts: CulturelandPinParts = [pinMatches[1], pinMatches[2], pinMatches[3], pinMatches[4]];
         return parts;
     }

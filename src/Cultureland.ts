@@ -21,6 +21,7 @@ export class Cultureland {
     });
     private _id?: string;
     private _password?: string;
+    private _userInfo?: CulturelandUser;
 
     /**
      * 컬쳐랜드 모바일웹을 자동화해주는 비공식 라이브러리입니다.
@@ -49,6 +50,10 @@ export class Cultureland {
 
     public get password() {
         return this._password;
+    }
+
+    public get userInfo() {
+        return this._userInfo;
     }
 
     /**
@@ -964,8 +969,9 @@ export class Cultureland {
             throw new CulturelandError("LoginRestrictedError", `컬쳐랜드 로그인 정책에 따라 로그인이 제한되었습니다.${errorCode ? ` (제한코드: ${errorCode})` : ""}`);
         }
 
-        this.id = id;
-        this.password = arg1 || arg0;
+        this._id = id;
+        this._password = arg1 || arg0;
+        this._userInfo = await this.getUserInfo();
 
         // 로그인 유지 정보 가져오기
         const KeepLoginConfigCookie = loginRequest.headers["set-cookie"]?.find(cookie => cookie.startsWith("KeepLoginConfig="));

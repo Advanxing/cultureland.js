@@ -21,7 +21,7 @@ export type CulturelandErrorNames =
     "RangeError" | "SafeLockRequiredError" | "ItemUnavailableError" |
     "PurchaseRestrictedError" | "DeliverFailError" | "PurchaseError" |
     "LookupError" | "CaptchaError" | "LoginError" | "LoginRestrictedError" |
-    "PinValidationError";
+    "PinValidationError" | "UnknownError";
 
 /**
  * 커스텀 오류 클래스입니다.
