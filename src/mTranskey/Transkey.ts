@@ -1,10 +1,8 @@
 import axios from "axios";
-import { HttpCookieAgent, HttpsCookieAgent } from "http-cookie-agent/http";
-import { CookieJar } from "tough-cookie";
+import crypto from "crypto";
 import Crypto from "./Crypto.js";
 import Keypad from "./Keypad.js";
 import { ServletData } from "./types.js";
-import { generateRandomHex, generateRandomInt, generateRandomKey } from "./utils.js";
 
 export class mTransKey {
     public sessionKey: number[];
@@ -12,46 +10,37 @@ export class mTransKey {
     public genSessionKey: string;
     public encryptedSessionKey: string;
     public allocationIndex: number;
-    public constructor(public cookieJar: CookieJar) {
-        this.transkeyUuid = Crypto.hashString("sha256", generateRandomHex(50));
-        this.genSessionKey = generateRandomKey(128);
+    public constructor(public client: axios.AxiosInstance) {
+        this.transkeyUuid = crypto.randomBytes(32).toString("hex");
+        this.genSessionKey = crypto.randomBytes(8).toString("hex");
         this.sessionKey = new Array(16).fill(null).map((_, i) => parseInt(this.genSessionKey.charAt(i), 16));
         this.encryptedSessionKey = Crypto.phpbb_encrypt2048(this.genSessionKey, Crypto.publicKey[0], Crypto.publicKey[1]);
-        this.allocationIndex = generateRandomInt();
+        this.allocationIndex = crypto.randomInt(2 ** 32 - 1);
     }
 
     /**
      * 트랜스키 서블릿 정보를 받아옵니다. `TK_requestToken` `initTime` `keyInfo`
      */
     public async getServletData(): Promise<ServletData> {
-        const options = {
-            httpAgent: new HttpCookieAgent({ cookies: { jar: this.cookieJar } }),
-            httpsAgent: new HttpsCookieAgent({ cookies: { jar: this.cookieJar } }),
-            headers: {
-                "User-Agent": "Mozilla/5.0 (Linux; Android 11; SM-G998N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Mobile Safari/537.36",
-                "Connection": "keep-alive"
-            }
-        };
-
         // TK_requestToken
-        const requestTokenResponse: string = await axios.get("https://m.cultureland.co.kr/transkeyServlet?op=getToken&" + new Date().getTime(), options).then(res => res.data);
+        const requestTokenResponse: string = await this.client.get("https://m.cultureland.co.kr/transkeyServlet?op=getToken&" + new Date().getTime()).then(res => res.data);
 
         const requestToken = requestTokenResponse.match(/var TK_requestToken=([\d-]+);/)?.[1] ?? "0";
 
         // initTime
-        const initTimeResponse: string = await axios.get("https://m.cultureland.co.kr/transkeyServlet?op=getInitTime", options).then(res => res.data);
+        const initTimeResponse: string = await this.client.get("https://m.cultureland.co.kr/transkeyServlet?op=getInitTime").then(res => res.data);
 
         const initTime = initTimeResponse.match(/var initTime='([\d-]+)';/)?.[1] ?? "0";
 
         // keyInfo (키 좌표)
-        const keyPositions: string = await axios.post("https://m.cultureland.co.kr/transkeyServlet", new URLSearchParams({
+        const keyPositions: string = await this.client.post("https://m.cultureland.co.kr/transkeyServlet", new URLSearchParams({
             "op": "getKeyInfo",
             "key": this.encryptedSessionKey,
             "transkeyUuid": this.transkeyUuid,
             "useCert": "true",
             "TK_requestToken": requestToken,
             "mode": "Mobile"
-        }).toString(), options).then(res => res.data);
+        })).then(res => res.data);
 
         const [qwerty, number] = keyPositions.split("var numberMobile = new Array();");
 

@@ -1,6 +1,4 @@
-import axios from "axios";
 import crypto from "crypto";
-import { HttpCookieAgent, HttpsCookieAgent } from "http-cookie-agent/http";
 import Jimp from "jimp";
 import Crypto from "./Crypto.js";
 import Seed from "./Seed.js";
@@ -24,7 +22,7 @@ const numberKeyHashes = [
 ];
 
 export class Keypad {
-    public keyIndex: string;
+    public keyIndex = "";
     public constructor(
         public mTranskey: mTransKey,
         public servletData: ServletData,
@@ -32,9 +30,7 @@ export class Keypad {
         public name: string,
         public inputName: string,
         public fieldType: string
-    ) {
-        this.keyIndex = "";
-    }
+    ) { }
 
     /**
      * 비밀번호를 키패드 배열에 따라 암호화합니다.
@@ -78,16 +74,7 @@ export class Keypad {
      * @returns 키패드 배열
      */
     public async getKeypadLayout() {
-        const options = {
-            httpAgent: new HttpCookieAgent({ cookies: { jar: this.mTranskey.cookieJar } }),
-            httpsAgent: new HttpsCookieAgent({ cookies: { jar: this.mTranskey.cookieJar } }),
-            headers: {
-                "User-Agent": "Mozilla/5.0 (Linux; Android 11; SM-G998N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Mobile Safari/537.36",
-                "Connection": "keep-alive"
-            }
-        };
-
-        this.keyIndex = await axios.post("https://m.cultureland.co.kr/transkeyServlet", new URLSearchParams({
+        this.keyIndex = await this.mTranskey.client.post("https://m.cultureland.co.kr/transkeyServlet", new URLSearchParams({
             "op": "getKeyIndex",
             "name": this.name,
             "keyType": this.keyboardType === "qwerty" ? "lower" : "single",
@@ -102,9 +89,9 @@ export class Keypad {
             "keyIndex": this.keyIndex,
             "initTime": this.servletData.initTime,
             "talkBack": "true"
-        }).toString(), options).then(res => res.data);
+        })).then(res => res.data);
 
-        const keyImageBuffer = await axios.get("https://m.cultureland.co.kr/transkeyServlet?" + new URLSearchParams({
+        const keyImageBuffer = await this.mTranskey.client.get("https://m.cultureland.co.kr/transkeyServlet?" + new URLSearchParams({
             "op": "getKey",
             "name": this.name,
             "keyType": this.keyboardType === "qwerty" ? "lower" : "single",
@@ -118,8 +105,7 @@ export class Keypad {
             "allocationIndex": this.mTranskey.allocationIndex.toString(),
             "keyIndex": this.keyIndex,
             "initTime": this.servletData.initTime
-        }).toString(), {
-            ...options,
+        }), {
             responseType: "arraybuffer"
         }).then(res => Buffer.from(res.data, "binary"));
 

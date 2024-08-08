@@ -72,7 +72,7 @@ export class Cultureland {
         // /assets/js/egovframework/com/cland/was/util/ClandCmmUtl.js L1281
         if (!pin.parts || !(pin.parts[0].startsWith("41") || /^31[1-9]/.test(pin.parts[0]))) throw new CulturelandError("InvalidPinError", "정확한 모바일 상품권 번호를 입력하세요.", { pin });
 
-        const transKey = new mTransKey(this.cookieJar);
+        const transKey = new mTransKey(this._client);
         const servletData = await transKey.getServletData();
 
         // <input type="tel" title="네 번째 6자리 입력" id="input-14" name="culturelandInput">
@@ -197,7 +197,7 @@ export class Cultureland {
                 "https://m.cultureland.co.kr/csh/cshGiftCardOnline.do" // 문화상품권(18자리)
         ); // 문화상품권(18자리)에서 모바일문화상품권도 충전 가능, 모바일문화상품권에서 문화상품권(18자리) 충전 불가능
 
-        const transKey = new mTransKey(this.cookieJar);
+        const transKey = new mTransKey(this._client);
         const servletData = await transKey.getServletData();
 
         const scratches: Record<string, string> = {}; // scratch (핀번호)
@@ -928,7 +928,7 @@ export class Cultureland {
 
         const macAddress = macAddressRequest.data?.newMacAddr as string | undefined || crypto.randomBytes(15).toString("hex").toUpperCase();
 
-        const transKey = new mTransKey(this.cookieJar);
+        const transKey = new mTransKey(this._client);
         const servletData = await transKey.getServletData();
 
         const keypad = transKey.createKeypad(servletData, "qwerty", "passwd", "passwd");
@@ -971,7 +971,7 @@ export class Cultureland {
         // 메인 페이지로 리다이렉션되지 않은 경우
         if (loginRequest.status === 200) {
             const errorMessage = loginRequest.data.match(/<input type="hidden" name="loginErrMsg"  value="([^"]+)" \/>/)?.[1];
-            if (errorMessage) throw new CulturelandError("LoginError", errorMessage);
+            if (errorMessage) throw new CulturelandError("LoginError", errorMessage.replace("\\n\\n", ". "));
             else throw new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
         }
 
