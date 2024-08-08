@@ -1,4 +1,4 @@
-export * from "./Crypto.js";
+export * from "./RSA.js";
 export * from "./Keypad.js";
 export * from "./Seed.js";
 export * from "./Transkey.js";

@@ -42,11 +42,10 @@
         "http-cookie-agent": "^6.0.5",
         "jimp": "^0.22.12",
         "node-html-parser": "^6.1.13",
-        "node-rsa": "^1.1.1",
         "tough-cookie": "^4.1.4"
     },
     "devDependencies": {
-        "@types/node-rsa": "^1.1.4",
+        "@types/node": "^22.1.0",
         "@types/tough-cookie": "^4.0.5",
         "tsup": "^8.1.0",
         "typescript": "^5.5.3"

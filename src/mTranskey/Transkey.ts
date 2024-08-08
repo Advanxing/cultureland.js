@@ -1,6 +1,6 @@
 import axios from "axios";
 import crypto from "crypto";
-import Crypto from "./Crypto.js";
+import { rsaEncrypt } from "./RSA.js";
 import Keypad from "./Keypad.js";
 import { ServletData } from "./types.js";
 
@@ -14,7 +14,7 @@ export class mTransKey {
         this.transkeyUuid = crypto.randomBytes(32).toString("hex");
         this.genSessionKey = crypto.randomBytes(8).toString("hex");
         this.sessionKey = new Array(16).fill(null).map((_, i) => parseInt(this.genSessionKey.charAt(i), 16));
-        this.encryptedSessionKey = Crypto.phpbb_encrypt2048(this.genSessionKey, Crypto.publicKey[0], Crypto.publicKey[1]);
+        this.encryptedSessionKey = rsaEncrypt(this.genSessionKey);
         this.allocationIndex = crypto.randomInt(2 ** 32 - 1);
     }
 

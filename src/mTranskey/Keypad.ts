@@ -1,6 +1,5 @@
 import crypto from "crypto";
 import Jimp from "jimp";
-import Crypto from "./Crypto.js";
 import Seed from "./Seed.js";
 import mTransKey from "./Transkey.js";
 import { ServletData } from "./types.js";
@@ -65,7 +64,7 @@ export class Keypad {
 
         return {
             encrypted,
-            encryptedHmac: Crypto.hmacDigest(this.mTranskey.genSessionKey, encrypted)
+            encryptedHmac: crypto.createHmac("sha256", this.mTranskey.genSessionKey).update(encrypted).digest("hex")
         };
     }
 
