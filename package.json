@@ -1,6 +1,6 @@
 {
     "name": "cultureland.js",
-    "version": "3.0.1-dev",
+    "version": "3.0.2-dev",
     "description": "컬쳐랜드 모바일웹을 자동화해주는 비공식 라이브러리입니다.",
     "type": "commonjs",
     "exports": {
