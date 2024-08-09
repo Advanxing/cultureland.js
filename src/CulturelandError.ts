@@ -45,16 +45,6 @@ export class CulturelandError extends Error {
     public get name() {
         return this._name;
     }
-
-    /**
-     * 오류를 string으로 반환합니다.
-     * @example
-     * const error = await client.login("id1234", "pw1234"); // 로그인 실패
-     * console.log(error.toString()); // Output: "[LoginError] "
-     */
-    public toString(): string {
-        return `[${this._name}]: ${this.message}`;
-    }
 }
 
 export default CulturelandError;
