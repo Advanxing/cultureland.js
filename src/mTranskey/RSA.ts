@@ -1,21 +1,27 @@
 import crypto from "crypto";
 
-// 컬쳐랜드 mTranskey RSA 퍼블릭 키
-const publicKey = [
-    "00ce263e3fd958264da51416be398e42d893df856851e56358377fa4296accb1695b772453b6fb9df530633739648db5bdcec56f9b4358d96635af646a96c2ffdabfc96319074aa99ac94494071225ec43f4ce1e03dc9d0b6df4f56c5d2c2b2e743c3836570de64aace82d9c35977568390fe196a67dd19b5a30ec66a8d0405a9d160ec7ad81f33e7e66e5da42938aa6ad8c8b743cc0f87b4a4954fbc1c78303046e503cfbb430c37a27503a6ff9ae403f51e311b07d4f005e925745ea3f9c6c2ad0033e41ed97fd24e2292de3336433d92fc1c22ffed72645c443a679ac52c64c101c67bdba389a3276dfd1539af9eab8cef96cf565bebb688da7d60822390a4b",
-    "010001"
-];
+/**
+ * 컬쳐랜드 mTranskey RSA 퍼블릭 키
+ * @description https://m.cultureland.co.kr/transkeyServlet?op=getPublicKey
+ * 에서 구할 수 있습니다.
+ */
+export const CULTURELAND_PUBLICKEY = "MIIDhTCCAm2gAwIBAgIJAO4t+//wr+lZMA0GCSqGSIb3DQEBCwUAMGcxCzAJBgNVBAYTAktSMR0wGwYDVQQKExRSYW9uU2VjdXJlIENvLiwgTHRkLjEaMBgGA1UECxMRUXVhbGl0eSBBc3N1cmFuY2UxHTAbBgNVBAMTFFJhb25TZWN1cmUgQ28uLCBMdGQuMB4XDTIyMTAyNzAyMDI1NFoXDTQyMTAyMjAyMDI1NFowgYAxCzAJBgNVBAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQxOTA3BgNVBAMMMFQ9UCZEPTE5NzQ4NjQ2Q0Y3NTE0NENEMzc2RUM2RkI0RkUwMDQ5MEQ5NEYyNjQmaDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAM4mPj/ZWCZNpRQWvjmOQtiT34VoUeVjWDd/pClqzLFpW3ckU7b7nfUwYzc5ZI21vc7Fb5tDWNlmNa9kapbC/9q/yWMZB0qpmslElAcSJexD9M4eA9ydC2309WxdLCsudDw4NlcN5kqs6C2cNZd1aDkP4ZamfdGbWjDsZqjQQFqdFg7HrYHzPn5m5dpCk4qmrYyLdDzA+HtKSVT7wceDAwRuUDz7tDDDeidQOm/5rkA/UeMRsH1PAF6SV0XqP5xsKtADPkHtl/0k4ikt4zNkM9kvwcIv/tcmRcRDpnmsUsZMEBxnvbo4mjJ239FTmvnquM75bPVlvrtojafWCCI5CksCAwEAAaMaMBgwCQYDVR0TBAIwADALBgNVHQ8EBAMCBeAwDQYJKoZIhvcNAQELBQADggEBABXyYfzQK63C5m16/SXxX2BKeUdVXxnEEyI/9dfReDEsj8yzVQipDSK8FiH05JtLqRpDKnfezXEDCYNMqIs3eRxBG2aO+ZCPaqSFllio2igSz3ENt7PbneX1qV8lTqnVg5/8qRteztSynKkECfbyV0VJBPw2gpeE1EheMXOAPu1zvdCYd29pgNlW3vPPDIXHUEZvlOCV8WhTfeE4jjOyVfLsVYSmnqIYc1ptdCPILwf0cp0s8feOAgeUN1VJ1TvoEXw4CZz7MSqruPUzt6MqoX7ShkGnq4ZDMRkVnInsKo2fzW+QNPrOzwO/yOsB/0bY+iQHLSpNYF3YRllCiE8L8XU=";
 
-export function rsaEncrypt(text: string) {
-    const key = crypto.createPublicKey({
-        format: "jwk",
-        key: {
-            kty: "RSA",
-            n: Buffer.from(publicKey[0], "hex").toString("base64url"),
-            e: Buffer.from(publicKey[1], "hex").toString("base64url")
-        }
-    });
+export function rsaEncrypt(text: string, publicKey: string) {
+    const cert = buildCertificate(publicKey);
 
-    const encrypted = crypto.publicEncrypt(key, Buffer.from(text));
+    const encrypted = crypto.publicEncrypt(
+        new crypto.X509Certificate(cert).publicKey,
+        Buffer.from(text)
+    );
+
     return encrypted.toString("hex").slice(0, 512); // 처음 512글자만 사용
+}
+
+export function buildCertificate(cert: string) {
+    cert = cert.replace("-----BEGIN CERTIFICATE-----", ""); // Prefix 제거
+    cert = cert.replace("-----END CERTIFICATE-----", ""); // Suffix 제거
+    cert = cert.replace(/(.{64})/g, "$1\n"); // 64글자마다 줄바꿈
+
+    return "-----BEGIN CERTIFICATE-----\n" + cert + "\n-----END CERTIFICATE-----";
 }

@@ -1,6 +1,6 @@
 import axios from "axios";
 import crypto from "crypto";
-import { rsaEncrypt } from "./RSA.js";
+import { rsaEncrypt, CULTURELAND_PUBLICKEY } from "./RSA.js";
 import Keypad from "./Keypad.js";
 import { ServletData } from "./types.js";
 
@@ -14,7 +14,7 @@ export class mTransKey {
         this.transkeyUuid = crypto.randomBytes(32).toString("hex");
         this.genSessionKey = crypto.randomBytes(8).toString("hex");
         this.sessionKey = new Array(16).fill(null).map((_, i) => parseInt(this.genSessionKey.charAt(i), 16));
-        this.encryptedSessionKey = rsaEncrypt(this.genSessionKey);
+        this.encryptedSessionKey = rsaEncrypt(this.genSessionKey, CULTURELAND_PUBLICKEY);
         this.allocationIndex = crypto.randomInt(2 ** 32 - 1);
     }
 
