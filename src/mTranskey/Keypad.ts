@@ -88,7 +88,7 @@ export class Keypad {
             "keyIndex": this.keyIndex,
             "initTime": this.servletData.initTime,
             "talkBack": "true"
-        })).then(res => res.data);
+        })).then(res => res.text());
 
         const keyImageBuffer = await this.mTranskey.client.get("https://m.cultureland.co.kr/transkeyServlet?" + new URLSearchParams({
             "op": "getKey",
@@ -104,11 +104,9 @@ export class Keypad {
             "allocationIndex": this.mTranskey.allocationIndex.toString(),
             "keyIndex": this.keyIndex,
             "initTime": this.servletData.initTime
-        }), {
-            responseType: "arraybuffer"
-        }).then(res => Buffer.from(res.data, "binary"));
+        })).then(res => res.arrayBuffer());
 
-        const keyImage = await Jimp.read(keyImageBuffer);
+        const keyImage = await Jimp.read(Buffer.from(keyImageBuffer));
         const keys: Jimp[] = [];
 
         for (let y = 0; y < (this.keyboardType === "qwerty" ? 4 : 3); y++) { // 키패드 세로 칸만큼 반복

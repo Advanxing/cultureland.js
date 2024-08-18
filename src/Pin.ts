@@ -13,11 +13,11 @@ export class Pin {
      * 핀번호가 유효하지 않은 경우 parts가 null을 반환합니다.
      * @param pin 상품권의 핀번호
      * @example
-     * // 올바은 핀 번호일 경우:
+     * // 올바른 핀번호일 경우:
      * const pin = new Pin("3110-0123-4567-8901"); // new Pin("3110", "0123", "4567", "8901"), new Pin(["3110", "0123", "4567", "8901"])
      * console.log(pin.parts); // Output: ["3110", "0123", "4567", "8901"]
      * 
-     * // 올바르지 않은 핀 번호일 경우:
+     * // 올바르지 않은 핀번호일 경우:
      * const pin = new Pin("swasd------"); // CulturelandError [PinValidationError]: 존재하지 않는 상품권입니다.
      */
     public constructor(pin: string)
@@ -71,7 +71,7 @@ export class Pin {
         const pinMatches = pin.match(/(\d{4})\D*(\d{4})\D*(\d{4})\D*(\d{6}|\d{4})/); // 1111!@#!@#@#@!#!@#-1111-1111DSSASDA-1111와 같은 형식도 PASS됨.
         if (!pinMatches) { // 핀번호 regex에 맞지 않는다면 검증 실패
             return false;
-            // throw new CulturelandError("PinValidationError", "핀 번호 Regex 검증에 실패했습니다.");
+            // throw new CulturelandError("PinValidationError", "핀번호 Regex 검증에 실패했습니다.");
         }
 
         const parts: CulturelandPinParts = [pinMatches[1], pinMatches[2], pinMatches[3], pinMatches[4]];
@@ -82,7 +82,7 @@ export class Pin {
             }
         } else if (parts[0].startsWith("41")) { // 핀번호가 41로 시작하지만 416 또는 4180으로 시작하지 않는다면 검증 실패
             return false;
-            // throw new CulturelandError("PinValidationError", "핀 번호 형식이 올바르지 않습니다.");
+            // throw new CulturelandError("PinValidationError", "핀번호 형식이 올바르지 않습니다.");
         } else if (parts[0].match(/^31[1-9]/) && parts[3].length === 4) { // 핀번호가 31로 시작하고 3번째 자리가 1~9이고, 마지막 핀번호 부분이 4자리라면
             // 검증 성공 (2024년 3월에 추가된 핀번호 형식)
             // /assets/js/egovframework/com/cland/was/util/ClandCmmUtl.js L1281
@@ -93,7 +93,7 @@ export class Pin {
             }
         } else { // 위 조건에 하나도 맞지 않는다면 검증 실패
             return false;
-            // throw new CulturelandError("PinValidationError", "핀 번호 형식이 올바르지 않습니다. (1)");
+            // throw new CulturelandError("PinValidationError", "핀번호 형식이 올바르지 않습니다.");
         }
 
         return true;

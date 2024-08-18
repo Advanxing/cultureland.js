@@ -1,6 +1,35 @@
 import Pin from "./Pin.js";
 
+/**
+ * @example
+ * "ResponseError" - 서버로부터 잘못된 응답을 받았을 경우
+ * "LoginRequiredError" - 로그인이 되어있지 않은 경우
+ * "InvalidPinError" - 유효하지 않은 핀번호를 사용하였을 경우
+ * "RangeError" - 범위를 벗어난 값을 입력한 경우
+ * "SafeLockRequiredError" - 안심금고가 활성화되어있지 않은 경우
+ * "ItemUnavailableError" - 구매가 불가능한 상품을 구매하려는 경우
+ * "PurchaseRestrictedError" - 이 계정에서 구매가 제한된 경우
+ * "DeliverFailError" - 구매가 완료되었지만 메시지/알림톡/메일 전송에 실패한 경우
+ * "PurchaseError" - 구매에 실패한 경우
+ * "LookupError" - 조회에 실패한 경우
+ * "CaptchaError" - 캡챠 해결에 실패한 경우
+ * "LoginError" - 로그인에 실패한 경우
+ * "LoginRestrictedError" - 계정 혹은 IP 주소가 로그인을 제한당한 경우
+ * "PinValidationError" - 컬쳐랜드 핀번호 형식이 올바르지 않은 경우
+ */
+export type CulturelandErrorNames =
+    "ResponseError" | "LoginRequiredError" | "InvalidPinError" |
+    "RangeError" | "SafeLockRequiredError" | "ItemUnavailableError" |
+    "PurchaseRestrictedError" | "DeliverFailError" | "PurchaseError" |
+    "LookupError" | "CaptchaError" | "LoginError" | "LoginRestrictedError" |
+    "PinValidationError" | "UnknownError";
+
 export type CulturelandPinParts = [string, string, string, string];
+
+export interface Cookie {
+    key: string;
+    value: string;
+}
 
 export interface VoucherResponse {
     resultCd: string;
@@ -583,13 +612,5 @@ export interface CulturelandLogin {
     /**
      * 로그인 유지 쿠키
      */
-    keepLoginConfig?: string;
-    /**
-     * 브라우저 아이디
-     */
-    browserId: string;
-    /**
-     * 임의의 MAC 주소
-     */
-    macAddress: string;
+    keepLoginConfig: string;
 }

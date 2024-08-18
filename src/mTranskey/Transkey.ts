@@ -1,8 +1,8 @@
-import axios from "axios";
 import crypto from "crypto";
 import { rsaEncrypt, CULTURELAND_PUBLICKEY } from "./RSA.js";
 import Keypad from "./Keypad.js";
 import { ServletData } from "./types.js";
+import FetchClient from "../request/FetchClient.js";
 
 export class mTransKey {
     public sessionKey: number[];
@@ -10,7 +10,7 @@ export class mTransKey {
     public genSessionKey: string;
     public encryptedSessionKey: string;
     public allocationIndex: number;
-    public constructor(public client: axios.AxiosInstance) {
+    public constructor(public client: FetchClient) {
         this.transkeyUuid = crypto.randomBytes(32).toString("hex");
         this.genSessionKey = crypto.randomBytes(8).toString("hex");
         this.sessionKey = new Array(16).fill(null).map((_, i) => parseInt(this.genSessionKey.charAt(i), 16));
@@ -23,12 +23,12 @@ export class mTransKey {
      */
     public async getServletData(): Promise<ServletData> {
         // TK_requestToken
-        const requestTokenResponse: string = await this.client.get("https://m.cultureland.co.kr/transkeyServlet?op=getToken&" + new Date().getTime()).then(res => res.data);
+        const requestTokenResponse: string = await this.client.get("https://m.cultureland.co.kr/transkeyServlet?op=getToken&" + new Date().getTime()).then(res => res.text());
 
         const requestToken = requestTokenResponse.match(/var TK_requestToken=([\d-]+);/)?.[1] ?? "0";
 
         // initTime
-        const initTimeResponse: string = await this.client.get("https://m.cultureland.co.kr/transkeyServlet?op=getInitTime").then(res => res.data);
+        const initTimeResponse: string = await this.client.get("https://m.cultureland.co.kr/transkeyServlet?op=getInitTime").then(res => res.text());
 
         const initTime = initTimeResponse.match(/var initTime='([\d-]+)';/)?.[1] ?? "0";
 
@@ -40,7 +40,7 @@ export class mTransKey {
             "useCert": "true",
             "TK_requestToken": requestToken,
             "mode": "Mobile"
-        })).then(res => res.data);
+        })).then(res => res.text());
 
         const [qwerty, number] = keyPositions.split("var numberMobile = new Array();");
 
