@@ -3,7 +3,7 @@ import CookieJar from "./CookieJar";
 /**
  * 내장 fetch 모듈(undici)을 요청 인스턴스화(axios.AxiosInstance)한 클래스입니다.
  */
-export default class FetchClient {
+export class FetchClient {
     private _cookieJar: CookieJar;
     private _requestInit: RequestInit;
     /**
@@ -77,3 +77,5 @@ export default class FetchClient {
         return response;
     }
 }
+
+export default FetchClient;

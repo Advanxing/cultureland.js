@@ -3,7 +3,7 @@ import { Cookie } from "../types";
 /**
  * 쿠키를 관리하는 쿠키 저장소입니다.
  */
-export default class CookieJar {
+export class CookieJar {
     private _cookies: Cookie[];
     /**
      * 쿠키가 저장되는 쿠키 저장소입니다.
@@ -14,7 +14,7 @@ export default class CookieJar {
     }
 
     /**
-     * 쿠키가 저장된 쿠키 저장소입니다.
+     * 저장된 쿠키를 반환합니다.
      */
     get cookies() {
         return this._cookies;
@@ -154,3 +154,5 @@ export default class CookieJar {
         };
     }
 }
+
+export default CookieJar;
