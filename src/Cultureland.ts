@@ -873,7 +873,7 @@ export class Cultureland {
         // KeepLoginConfig 쿠키를 사용할 경우 hCaptcha 값의 유효성을 확인하지 않는 취약점 사용
         this.cookieJar.set({
             key: "KeepLoginConfig",
-            value: encodeURIComponent(keepLoginInfo ?? crypto.randomBytes(48).toString("base64url"))
+            value: isKeepLogin ? encodeURIComponent(keepLoginInfo!) : crypto.randomBytes(48).toString("base64url")
         });
 
         if (isKeepLogin) {
