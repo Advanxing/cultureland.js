@@ -867,12 +867,13 @@ export class Cultureland {
     public async login(keepLoginInfo: string): Promise<CulturelandLogin>;
     public async login(credentials: { id: string; password: string; } | string): Promise<CulturelandLogin> {
         const isKeepLogin = typeof credentials === "string";
-        const keepLoginInfo = isKeepLogin ? decodeURIComponent(credentials) : crypto.randomBytes(48).toString("base64url");
+        const keepLoginInfo = isKeepLogin ? decodeURIComponent(credentials) : null;
         let id = isKeepLogin ? "" : credentials.id;
 
+        // KeepLoginConfig 쿠키를 사용할 경우 hCaptcha 값의 유효성을 확인하지 않는 취약점 사용
         this.cookieJar.set({
             key: "KeepLoginConfig",
-            value: encodeURIComponent(keepLoginInfo)
+            value: encodeURIComponent(keepLoginInfo ?? crypto.randomBytes(48).toString("base64url"))
         });
 
         if (isKeepLogin) {
@@ -904,10 +905,7 @@ export class Cultureland {
         const encryptedPassword = keypad.encryptPassword(isKeepLogin ? "" : credentials.password, keypadLayout);
 
         const payload = new URLSearchParams({
-            keepLoginInfo: isKeepLogin ? keepLoginInfo : "",
-            hidWebType: "other",
-            // KeepLoginConfig 쿠키를 사용할 경우 hCaptcha 값의 유효 여부를 확인하지 않는 취약점 사용
-            checkhCaptcha: "",
+            keepLoginInfo: isKeepLogin ? keepLoginInfo! : "",
             userId: id,
             keepLogin: "Y",
             seedKey: transKey.encryptedSessionKey,

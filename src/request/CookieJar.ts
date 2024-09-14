@@ -1,24 +1,44 @@
 import { Cookie } from "../types";
 
 /**
- * 쿠키를 관리합니다.
+ * 쿠키를 관리하는 쿠키 저장소입니다.
  */
 export default class CookieJar {
     private _cookies: Cookie[];
+    /**
+     * 쿠키가 저장되는 쿠키 저장소입니다.
+     * @param cookies 쿠키
+     */
     constructor(cookies: Cookie[] = []) {
         this._cookies = cookies;
     }
 
+    /**
+     * 쿠키가 저장된 쿠키 저장소입니다.
+     */
     get cookies() {
         return this._cookies;
     }
 
+    /**
+     * 쿠키를 가져옵니다.
+     * @example
+     * cookieJar.get("KeepLoginConfig");
+     * @param key 가져올 쿠키의 키 (이름)
+     * @returns 쿠키의 값
+     */
     get(key: string) {
         const cookie = this._cookies.find(cookie => cookie.key === key);
 
         return cookie ? cookie.value : null;
     }
 
+    /**
+     * 쿠키를 추가합니다.
+     * @example
+     * cookieJar.add({ key: "KeepLoginConfig", value: "keepLoginInfo" });
+     * @param cookie 추가할 쿠키
+     */
     add(cookie: string): void;
     add(cookie: string[]): void;
     add(cookie: Cookie): void;
@@ -51,6 +71,12 @@ export default class CookieJar {
         this._cookies.push(...cookies);
     }
 
+    /**
+     * 저장된 쿠키를 설정합니다. (저장된 모든 쿠키를 덮어씁니다)
+     * @example
+     * cookieJar.set({ key: "KeepLoginConfig", value: "keepLoginInfo" });
+     * @param cookie 저장할 쿠키
+     */
     set(cookie: string): void;
     set(cookie: string[]): void;
     set(cookie: Cookie): void;
@@ -72,6 +98,11 @@ export default class CookieJar {
         }
     }
 
+    /**
+     * 쿠키를 삭제합니다.
+     * @param key 삭제할 쿠키의 키 (이름)
+     * @returns 삭제 성공 여부
+     */
     remove(key: string) {
         const index = this._cookies.findIndex(cookie => cookie.key === key);
 
@@ -82,6 +113,9 @@ export default class CookieJar {
         return true;
     }
 
+    /**
+     * 저장된 쿠키를 cookie 헤더 형식에 맞춰 string으로 변환합니다.
+     */
     toString() {
         const cookies: string[] = [];
         for (const cookie of this._cookies) {
@@ -92,6 +126,12 @@ export default class CookieJar {
         return cookies.join("; ");
     }
 
+    /**
+     * set-cookie 헤더에서 쿠키를 파싱합니다.
+     * @example
+     * cookieJar.parse("KeepLoginConfig=keepLoginInfo; …");
+     * @param cookie set-cookie 헤더 값
+     */
     static parse(cookie: string): Cookie | null;
     static parse(cookies: string[]): Cookie[];
     static parse(cookies: string | string[]): Cookie | Cookie[] | null {
