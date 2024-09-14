@@ -888,6 +888,12 @@ export class Cultureland {
 
             if (!userId) throw new CulturelandError("LoginError", "입력하신 로그인 유지 정보는 만료된 정보입니다.");
             id = userId;
+        } else {
+            if (credentials.id.length === 0) {
+                throw new CulturelandError("LoginError", "아이디를 입력해 주십시오.");
+            } else if (credentials.password.length === 0) {
+                throw new CulturelandError("LoginError", "비밀번호를 입력해 주십시오.");
+            }
         }
 
         const transKey = new mTransKey(this._client);
