@@ -343,7 +343,7 @@ export class Seed {
         Seed.ArrayCopy(f, 0, e, 0, blockSize * 16 + remainLen);
     }
 
-    public SeedDecryptCbc(a: number[], b: number[], c: number[], d: number, e: number[]) {
+    public static SeedDecryptCbc(a: number[], b: number[], c: number[], d: number, e: number[]) {
         let i = 0;
         const blockSize = d / 16;
         const remainLen = d % 16;

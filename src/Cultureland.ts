@@ -867,13 +867,13 @@ export class Cultureland {
     public async login(keepLoginInfo: string): Promise<CulturelandLogin>;
     public async login(credentials: { id: string; password: string; } | string): Promise<CulturelandLogin> {
         const isKeepLogin = typeof credentials === "string";
-        const keepLoginInfo = isKeepLogin ? decodeURIComponent(credentials) : null;
+        const keepLoginInfo = isKeepLogin ? decodeURIComponent(credentials).replace(/\+/g, " ") : null;
         let id = isKeepLogin ? "" : credentials.id;
 
         // KeepLoginConfig 쿠키를 사용할 경우 hCaptcha 값의 유효성을 확인하지 않는 취약점 사용
         this.cookieJar.set({
             key: "KeepLoginConfig",
-            value: isKeepLogin ? encodeURIComponent(keepLoginInfo!) : crypto.randomBytes(48).toString("base64url")
+            value: isKeepLogin ? encodeURIComponent(keepLoginInfo!).replace(/%20/g, "+") : crypto.randomBytes(48).toString("base64url")
         });
 
         if (isKeepLogin) {
@@ -956,11 +956,11 @@ export class Cultureland {
         // 변수 저장
         this._id = id;
         this._password = isKeepLogin ? null : credentials.password;
-        this._keepLoginInfo = KeepLoginConfigCookie.value;
+        this._keepLoginInfo = decodeURIComponent(KeepLoginConfigCookie.value).replace(/\+/g, " ");
 
         return {
             userId: id,
-            keepLoginConfig: decodeURIComponent(KeepLoginConfigCookie.value)
+            keepLoginConfig: this._keepLoginInfo
         };
     }
 }
