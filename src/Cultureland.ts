@@ -2,7 +2,7 @@
 import { parse } from "node-html-parser";
 import pkg from "../package.json";
 import CulturelandError from "./CulturelandError.js";
-import mTransKey from "./mTranskey/Transkey.js";
+import mTranskey from "./mTranskey/Transkey.js";
 import Pin from "./Pin.js";
 import FetchClient from "./request/FetchClient.js";
 import CookieJar from "./request/CookieJar.js";
@@ -754,7 +754,7 @@ export class Cultureland {
      * ID와 비밀번호 또는 로그인 유지 쿠키로 컬쳐랜드에 로그인합니다.
      */
     /**
-     * 아이디/비밀번호를 사용하여 컬쳐랜드에 로그인합니다.
+     * 아이디와 비밀번호를 사용하여 컬쳐랜드에 로그인합니다.
      * @param credentials 컬쳐랜드 ID, 비밀번호
      * @example
      * await client.login({ id: "test1234", password: "test1234!" });
@@ -866,7 +866,7 @@ export class Cultureland {
 
         return {
             userId: id,
-            keepLoginConfig: this._keepLoginInfo
+            keepLoginInfo: this._keepLoginInfo
         };
     }
 }

@@ -134,9 +134,9 @@ export interface CulturelandBalance {
 
 export interface CulturelandCharge {
     /**
-     * 성공 여부 메시지
+     * 성공 여부 메시지 - `충전 완료` `상품권지갑 보관` `잔액이 0원인 상품권` `상품권 번호 불일치`
      */
-    message: "충전 완료" | "상품권지갑 보관" | "잔액이 0원인 상품권" | "상품권 번호 불일치";
+    message: string;
     /**
      * 충전 금액
      */
@@ -591,5 +591,5 @@ export interface CulturelandLogin {
     /**
      * 로그인 유지 쿠키
      */
-    keepLoginConfig: string;
+    keepLoginInfo: string;
 }
