@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import Jimp from "jimp";
 import Seed from "./Seed.js";
-import mTransKey from "./Transkey.js";
+import mTranskey from "./Transkey.js";
 import { ServletData } from "./types.js";
 
 const specialChars = ["`", "~", "!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "-", "_", "=", "+", "[", "{", "]", "}", "\\", "|", ";", ":", "/", "?", ",", "<", ".", ">", "'", "\"", "+", "-", "*", "/"];
@@ -23,7 +23,7 @@ const numberKeyHashes = [
 export class Keypad {
     public keyIndex = "";
     public constructor(
-        public mTranskey: mTransKey,
+        public mTranskey: mTranskey,
         public servletData: ServletData,
         public keyboardType: "qwerty" | "number",
         public name: string,

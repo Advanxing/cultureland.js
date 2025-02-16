@@ -1,7 +1,7 @@
 import CookieJar from "./CookieJar";
 
 /**
- * 내장 fetch 모듈(undici)을 요청 인스턴스화(axios.AxiosInstance)한 클래스입니다.
+ * 내장 fetch 모듈(undici)을 요청 인스턴스화한 클래스입니다.
  */
 export class FetchClient {
     private _cookieJar: CookieJar;
@@ -63,7 +63,7 @@ export class FetchClient {
             ...requestInit,
             headers: {
                 ...this._requestInit.headers,
-                ...(body ? { "content-type": "application/x-www-form-urlencoded" } : {}), // header for URLSearchParams
+                ...(body && { "content-type": "application/x-www-form-urlencoded" }), // header for URLSearchParams
                 cookie: this._cookieJar.toString(), // header for cookies
                 ...requestInit?.headers
             },

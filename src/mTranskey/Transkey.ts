@@ -4,7 +4,7 @@ import Keypad from "./Keypad.js";
 import { ServletData } from "./types.js";
 import FetchClient from "../request/FetchClient.js";
 
-export class mTransKey {
+export class mTranskey {
     public sessionKey: number[];
     public transkeyUuid: string;
     public genSessionKey: string;
@@ -97,4 +97,4 @@ export class mTransKey {
     }
 }
 
-export default mTransKey;
+export default mTranskey;

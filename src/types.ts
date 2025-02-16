@@ -12,7 +12,6 @@ import Pin from "./Pin.js";
  * "DeliverFailError" - 구매가 완료되었지만 메시지/알림톡/메일 전송에 실패한 경우
  * "PurchaseError" - 구매에 실패한 경우
  * "LookupError" - 조회에 실패한 경우
- * "CaptchaError" - 캡챠 해결에 실패한 경우
  * "LoginError" - 로그인에 실패한 경우
  * "LoginRestrictedError" - 계정 혹은 IP 주소가 로그인을 제한당한 경우
  * "PinValidationError" - 컬쳐랜드 핀번호 형식이 올바르지 않은 경우
@@ -21,7 +20,7 @@ export type CulturelandErrorNames =
     "ResponseError" | "LoginRequiredError" | "InvalidPinError" |
     "RangeError" | "SafeLockRequiredError" | "ItemUnavailableError" |
     "PurchaseRestrictedError" | "DeliverFailError" | "PurchaseError" |
-    "LookupError" | "CaptchaError" | "LoginError" | "LoginRestrictedError" |
+    "LookupError" | "LoginError" | "LoginRestrictedError" |
     "PinValidationError" | "UnknownError";
 
 export type CulturelandPinParts = [string, string, string, string];
@@ -86,7 +85,7 @@ export interface CulturelandVoucher {
     /** 
      * 상품권의 발행번호 (인증번호)
      */
-    certNo: string;
+    certNumber: string;
     /**
      * 상품권의 발행일 | `20241231`
      */
@@ -165,6 +164,10 @@ export interface CulturelandGift {
      * 선물 바코드 URL
      */
     url: string;
+    /**
+     * 선물 발행번호
+     */
+    controlCode: string;
 }
 
 export interface GiftLimitResponse {
@@ -287,30 +290,6 @@ export interface CulturelandGiftLimit {
     limit: number;
 }
 
-export interface ChangeCoupangCashResponse {
-    resultCd: string;
-    resultMsg: string;
-}
-
-export interface CulturelandChangeCoupangCash {
-    /**
-     * (전환 수수료 6%가 차감된) 전환된 금액
-     */
-    amount: number;
-}
-
-export interface ChangeSmileCashResponse {
-    resultCd: string;
-    resultMsg: string;
-}
-
-export interface CulturelandChangeSmileCash {
-    /**
-     * (전환 수수료 5%가 과금된) 과금된 금액
-     */
-    amount: number;
-}
-
 export interface CulturelandGooglePlay {
     /**
      * 기프트 코드 번호
@@ -321,9 +300,9 @@ export interface CulturelandGooglePlay {
      */
     url: string;
     /**
-     * 카드번호
+     * 발행번호 (인증번호)
      */
-    certNo: string;
+    certNumber: string;
 }
 
 export interface GooglePlayBuyResponse {
