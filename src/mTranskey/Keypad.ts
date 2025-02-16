@@ -6,18 +6,19 @@ import { ServletData } from "./types.js";
 
 const specialChars = ["`", "~", "!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "-", "_", "=", "+", "[", "{", "]", "}", "\\", "|", ";", ":", "/", "?", ",", "<", ".", ">", "'", "\"", "+", "-", "*", "/"];
 const lowerChars = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "a", "s", "d", "f", "g", "h", "j", "k", "l", "z", "x", "c", "v", "b", "n", "m"];
+const lowerKeyBlankHash = "997e5efa6dfa3cf8e0a1a27eeb30ed02";
 const numberKeyHashes = [
-    "84f2eb127557f50338745a1efd1fabff", // 0
-    "514e7f310783341192e91c2c51a52b84", // 1
-    "79bfa52825b615af6ddb030feb2a8c41", // 2
-    "d5f695d8e5b1b03f5e3f772585e601fe", // 3
-    "66852070450c975e4e99192e9dc7ea8d", // 4
-    "13901eb0b5a9fc5ff09e85075c29a324", // 5
-    "cca1b470d8592bb1393922ca8e96792f", // 6
-    "26b2dda3652b522653cc1f818de3cdac", // 7
-    "915c6ece9e55c1e68b34acfc2ee0f69b", // 8
-    "88d105f5dc94ee594d3d8d94da55fbc8", // 9
-    "72b37a3cde7c13926b2404f47a19da5e" // empty
+    "a23da146c706191d54597b01b6813fee", // 0
+    "47b35f315e80e955cbbc099926cdcb0c", // 1
+    "00adba3a2cc9b45ebd3cc02e2e2886e1", // 2
+    "325ccb0511e033e9faec110a84eea8ab", // 3
+    "2e333c1384074a6c2f3c5b196d0cc23b", // 4
+    "44a66459f3f9c922f01cda54705cc1d3", // 5
+    "1c8a78237189cd67eaf896e5643e21d7", // 6
+    "834d0bf6f5bfee4776f6db1f38eb7453", // 7
+    "64e333a7f9b0aa9cf0310b7f721a6b4e", // 8
+    "cb240797063e081c6a539b2b15b9c447", // 9
+    "9c87ff1abc394dae90c07f2dec95bec5" // blank
 ];
 
 export class Keypad {
@@ -134,11 +135,11 @@ export class Keypad {
         const layout: number[] = [];
         let i = 0;
         for (const key of keys) {
-            const keyPayload = await key.getBase64Async(Jimp.MIME_PNG);
+            const keyPayload = await key.getBufferAsync(Jimp.MIME_BMP);
             const keyHash = crypto.createHash("md5").update(keyPayload).digest("hex"); // 키 사진의 해시
 
             if (this.keyboardType === "qwerty") {
-                if (keyHash === "44529f2104900879d858baf3f763b3b2") layout.push(-1); // 빈 칸
+                if (keyHash === lowerKeyBlankHash) layout.push(-1); // 빈 칸
                 else layout.push(i++);
             }
             else layout.push(numberKeyHashes.indexOf(keyHash)); // 사진의 해시를 이용해 어떤 키인지 찾아냄
