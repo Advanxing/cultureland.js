@@ -776,12 +776,6 @@ export class Cultureland {
         const keepLoginInfo = isKeepLogin ? decodeURIComponent(credentials).replace(/\+/g, " ") : null;
         let id = isKeepLogin ? "" : credentials.id;
 
-        // KeepLoginConfig 쿠키를 사용할 경우 hCaptcha 값의 유효성을 확인하지 않는 취약점 사용
-        this.cookieJar.set({
-            key: "KeepLoginConfig",
-            value: isKeepLogin ? encodeURIComponent(keepLoginInfo!).replace(/%20/g, "+") : crypto.randomBytes(48).toString("base64url")
-        });
-
         if (isKeepLogin) {
             const loginMainRequest = await this.client.get("https://m.cultureland.co.kr/mmb/loginMain.do", {
                 headers: {
@@ -801,7 +795,17 @@ export class Cultureland {
             } else if (credentials.password.length === 0) {
                 throw new CulturelandError("LoginError", "비밀번호를 입력해 주십시오.");
             }
+
+            // ID 비밀번호 로그인 시 SESSION 쿠키 필요 (2025년 4월 3일 ~)
+            // 로그인 메인 페이지에 요청을 보내 SESSION 쿠키를 받아옴
+            await this.client.get("https://m.cultureland.co.kr/mmb/loginMain.do");
         }
+
+        // KeepLoginConfig 쿠키를 사용할 경우 hCaptcha 값의 유효성을 확인하지 않는 취약점 사용
+        this.cookieJar.add({
+            key: "KeepLoginConfig",
+            value: isKeepLogin ? encodeURIComponent(keepLoginInfo!).replace(/%20/g, "+") : crypto.randomBytes(48).toString("base64url")
+        });
 
         const transkey = new mTranskey(this._client);
         const servletData = await transkey.getServletData();
