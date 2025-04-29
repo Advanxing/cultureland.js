@@ -777,6 +777,11 @@ export class Cultureland {
         let id = isKeepLogin ? "" : credentials.id;
 
         if (isKeepLogin) {
+            this.cookieJar.set({
+                key: "KeepLoginConfig",
+                value: encodeURIComponent(keepLoginInfo!).replace(/%20/g, "+")
+            });
+
             const loginMainRequest = await this.client.get("https://m.cultureland.co.kr/mmb/loginMain.do", {
                 headers: {
                     Referer: "https://m.cultureland.co.kr/index.do"
@@ -800,12 +805,6 @@ export class Cultureland {
             // 로그인 메인 페이지에 요청을 보내 SESSION 쿠키를 받아옴
             await this.client.get("https://m.cultureland.co.kr/mmb/loginMain.do");
         }
-
-        // KeepLoginConfig 쿠키를 사용할 경우 hCaptcha 값의 유효성을 확인하지 않는 취약점 사용
-        this.cookieJar.add({
-            key: "KeepLoginConfig",
-            value: isKeepLogin ? encodeURIComponent(keepLoginInfo!).replace(/%20/g, "+") : crypto.randomBytes(48).toString("base64url")
-        });
 
         const transkey = new mTranskey(this._client);
         const servletData = await transkey.getServletData();
