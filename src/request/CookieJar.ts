@@ -119,7 +119,7 @@ export class CookieJar {
     toString() {
         const cookies: string[] = [];
         for (const cookie of this._cookies) {
-            const cookieString = encodeURIComponent(cookie.key) + "=" + encodeURIComponent(cookie.value);
+            const cookieString = encodeURIComponent(cookie.key) + "=" + encodeURIComponent(cookie.value).replace(/%20/g, "+");
             cookies.push(cookieString);
         }
 

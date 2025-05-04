@@ -779,7 +779,7 @@ export class Cultureland {
         if (isKeepLogin) {
             this.cookieJar.set({
                 key: "KeepLoginConfig",
-                value: encodeURIComponent(keepLoginInfo!).replace(/%20/g, "+")
+                value: keepLoginInfo!
             });
 
             const loginMainRequest = await this.client.get("https://m.cultureland.co.kr/mmb/loginMain.do", {
