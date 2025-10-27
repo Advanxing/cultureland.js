@@ -17,34 +17,16 @@
 npm install cultureland.js@dev
 ```
 
+사용 전에 [컬쳐랜드 모바일웹](https://m.cultureland.co.kr/mmb/loginMain.do)에서 로그인 유지 쿠키를 가져와 주세요.<br>
+로그인 유지 옵션을 활성화한 후 로그인하면 'KeepLoginConfig' 쿠키를 발급받을 수 있습니다.<br>
+아이디와 비밀번호를 사용할 경우 hCaptcha 해결이 필요하기 때문에 본 라이브러리에서는 이 쿠키값을 사용하여 컬쳐랜드에 로그인합니다.
+
 ### 클라이언트 생성
 ```typescript
 const Cultureland = require("cultureland.js"); // CommonJS style
 import Cultureland from "cultureland.js"; // ES style
 
 const client = new Cultureland();
-```
-
-### 로그인 (아이디 & 비밀번호)
-아이디와 비밀번호를 사용하여 컬쳐랜드에 로그인합니다.
-```typescript
-<Cultureland>.login(credentials: { id: string; password: string; }): Promise<CulturelandLogin>
-```
-
-파라미터:
-* credentials
-  * id (string): 컬쳐랜드 ID
-  * password (string): 컬쳐랜드 비밀번호
-
-반환값:
-* CulturelandLogin
-  * userId (string): 컬쳐랜드 ID
-  * keepLoginInfo (string): 로그인 유지 쿠키
-
-```typescript
-await client.login({ id: "id", password: "pw" })
-    .then(creds => console.log(`로그인 성공 | 아이디: ${creds.userId} | 로그인 유지 쿠키: ${creds.keepLoginInfo}`))
-    .catch(console.error);
 ```
 
 ### 로그인 (로그인 유지 쿠키)
@@ -87,9 +69,7 @@ await client.getBalance()
 
 ### 충전
 컬쳐랜드상품권(모바일문화상품권) 및 문화상품권(18자리)을 컬쳐캐쉬로 충전합니다.<br>
-지류/온라인문화상품권(18자리)은 2022.12.31 이전 발행 건만 충전 가능합니다.<br>
-상품권이 한개일 경우 핀 핀번호가 틀리면 InvalidPinError를 throw합니다.<br>
-상품권이 여러개일 경우 핀번호가 틀려도 에러를 throw하지 않습니다.
+지류/온라인문화상품권(18자리)은 2022.12.31 이전 발행 건만 충전 가능합니다.
 ```typescript
 <Cultureland>.charge(pins: Pin | Pins[]): Promise<CulturelandCharge | CulturelandCharge[]>
 ```
@@ -105,6 +85,11 @@ await client.getBalance()
 ```typescript
 const { Pin } = require("cultureland.js"); // CommonJS style
 import { Pin } from "cultureland.js"; // ES style
+
+if (!Pin.validateClientSide("3110-0123-4567-8901")) {
+    console.error("핀번호가 올바르지 않습니다.");
+    process.exit(1);
+}
 
 // 한 개의 핀번호 충전
 await client.charge(new Pin("3110-0123-4567-8901"))

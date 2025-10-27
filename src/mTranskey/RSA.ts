@@ -12,7 +12,7 @@ export function rsaEncrypt(text: string, publicKey: string) {
 
     const encrypted = crypto.publicEncrypt(
         new crypto.X509Certificate(cert).publicKey,
-        Buffer.from(text)
+        new Uint8Array(Buffer.from(text))
     );
 
     return encrypted.toString("hex").slice(0, 512); // 처음 512글자만 사용

@@ -5,7 +5,7 @@ import { ServletData } from "./types.js";
 import FetchClient from "../request/FetchClient.js";
 
 export class mTranskey {
-    public sessionKey: number[];
+    public sessionKey: Uint8Array;
     public transkeyUuid: string;
     public genSessionKey: string;
     public encryptedSessionKey: string;
@@ -13,7 +13,7 @@ export class mTranskey {
     public constructor(public client: FetchClient) {
         this.transkeyUuid = crypto.randomBytes(32).toString("hex");
         this.genSessionKey = crypto.randomBytes(8).toString("hex");
-        this.sessionKey = new Array(16).fill(null).map((_, i) => parseInt(this.genSessionKey.charAt(i), 16));
+        this.sessionKey = Uint8Array.from(this.genSessionKey, char => parseInt(char, 16));
         this.encryptedSessionKey = rsaEncrypt(this.genSessionKey, CULTURELAND_PUBLICKEY);
         this.allocationIndex = crypto.randomInt(2 ** 32 - 1);
     }

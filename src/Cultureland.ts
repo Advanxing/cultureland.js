@@ -14,7 +14,6 @@ export class Cultureland {
     private _requestInit: RequestInit = {};
     private _userInfo?: Types.CulturelandUser;
     private _id: string | null = null;
-    private _password: string | null = null;
     private _keepLoginInfo: string | null = null;
 
     /**
@@ -40,10 +39,6 @@ export class Cultureland {
 
     public get id() {
         return this._id;
-    }
-
-    public get password() {
-        return this._password;
     }
 
     public get keepLoginInfo() {
@@ -150,7 +145,6 @@ export class Cultureland {
     /**
      * 컬쳐랜드상품권(모바일문화상품권) 및 문화상품권(18자리)을 컬쳐캐쉬로 충전합니다.
      * 지류/온라인문화상품권(18자리)은 2022.12.31 이전 발행 건만 충전 가능합니다.
-     * 상품권이 한개일 경우 핀 핀번호가 틀리면 InvalidPinError를 throw합니다.
      * @param pin 상품권의 핀번호
      * @example
      * // 한 개의 핀번호 충전
@@ -161,7 +155,6 @@ export class Cultureland {
     /**
      * 컬쳐랜드상품권(모바일문화상품권) 및 문화상품권(18자리)을 컬쳐캐쉬로 충전합니다.
      * 지류/온라인문화상품권(18자리)은 2022.12.31 이전 발행 건만 충전 가능합니다.
-     * 상품권이 여러개일 경우 핀번호가 틀려도 에러를 throw하지 않습니다.
      * @param pins 상품권들의 핀번호
      * @example
      * // 여러개의 핀번호 충전
@@ -237,6 +230,8 @@ export class Cultureland {
             }
         );
 
+        if (chargeRequest.status !== 302) throw new CulturelandError("ResponseError", "잘못된 응답이 반환되었습니다.");
+
         const chargeResultRequest = await this.client.get("https://m.cultureland.co.kr" + chargeRequest.headers.get("location"));
 
         const chargeResult: string = await chargeResultRequest.text(); // 충전 결과 받아오기
@@ -249,6 +244,7 @@ export class Cultureland {
 
         for (let i = 0; i < pins.length; i++) {
             const chargeResult = parsedResults[i].getElementsByTagName("td");
+            console.log(chargeResult[1].innerHTML);
 
             results.push({
                 message: chargeResult[2].innerText as Types.CulturelandCharge["message"],
@@ -256,7 +252,7 @@ export class Cultureland {
             });
         }
 
-        return results.length === 1 ? results[0] : results;
+        return isSinglePin ? results[0] : results;
     }
 
     /**
@@ -751,17 +747,6 @@ export class Cultureland {
     }
 
     /**
-     * ID와 비밀번호 또는 로그인 유지 쿠키로 컬쳐랜드에 로그인합니다.
-     */
-    /**
-     * 아이디와 비밀번호를 사용하여 컬쳐랜드에 로그인합니다.
-     * @param credentials 컬쳐랜드 ID, 비밀번호
-     * @example
-     * await client.login({ id: "test1234", password: "test1234!" });
-     * @returns 로그인 결과
-     */
-    public async login(credentials: { id: string; password: string; }): Promise<Types.CulturelandLogin>;
-    /**
      * 로그인 유지 쿠키를 사용하여 컬쳐랜드에 로그인합니다.
      * @param keepLoginInfo 로그인 유지 쿠키
      * @example
@@ -770,52 +755,35 @@ export class Cultureland {
      * await client.login(keepLoginInfo);
      * @returns 로그인 결과
     */
-    public async login(keepLoginInfo: string): Promise<Types.CulturelandLogin>;
-    public async login(credentials: { id: string; password: string; } | string): Promise<Types.CulturelandLogin> {
-        const isKeepLogin = typeof credentials === "string";
-        const keepLoginInfo = isKeepLogin ? decodeURIComponent(credentials).replace(/\+/g, " ") : null;
-        let id = isKeepLogin ? "" : credentials.id;
+    public async login(keepLoginInfo: string): Promise<Types.CulturelandLogin> {
+        keepLoginInfo = decodeURIComponent(keepLoginInfo).replace(/\+/g, " ");
 
-        if (isKeepLogin) {
-            this.cookieJar.set({
-                key: "KeepLoginConfig",
-                value: keepLoginInfo!
-            });
+        this.cookieJar.set({
+            key: "KeepLoginConfig",
+            value: keepLoginInfo
+        });
 
-            const loginMainRequest = await this.client.get("https://m.cultureland.co.kr/mmb/loginMain.do", {
-                headers: {
-                    Referer: "https://m.cultureland.co.kr/index.do"
-                }
-            });
-
-            const loginMain: string = await loginMainRequest.text();
-
-            const userId = loginMain.match(/<input type="text" id="txtUserId" name="userId" value="(\w*)" maxlength="12" oninput="maxLengthCheck\(this\);" placeholder="아이디" >/)?.[1];
-
-            if (!userId) throw new CulturelandError("LoginError", "입력하신 로그인 유지 정보는 만료된 정보입니다.");
-            id = userId;
-        } else {
-            if (credentials.id.length === 0) {
-                throw new CulturelandError("LoginError", "아이디를 입력해 주십시오.");
-            } else if (credentials.password.length === 0) {
-                throw new CulturelandError("LoginError", "비밀번호를 입력해 주십시오.");
+        const loginMainRequest = await this.client.get("https://m.cultureland.co.kr/mmb/loginMain.do", {
+            headers: {
+                Referer: "https://m.cultureland.co.kr/index.do"
             }
+        });
 
-            // ID 비밀번호 로그인 시 SESSION 쿠키 필요 (2025년 4월 3일 ~)
-            // 로그인 메인 페이지에 요청을 보내 SESSION 쿠키를 받아옴
-            await this.client.get("https://m.cultureland.co.kr/mmb/loginMain.do");
-        }
+        const loginMain: string = await loginMainRequest.text();
+
+        const userId = loginMain.match(/<input type="text" id="txtUserId" name="userId" value="(\w*)" maxlength="12" oninput="maxLengthCheck\(this\);" placeholder="아이디" >/)?.[1];
+        if (!userId) throw new CulturelandError("LoginError", "입력하신 로그인 유지 정보는 만료된 정보입니다.");
 
         const transkey = new mTranskey(this._client);
         const servletData = await transkey.getServletData();
 
         const keypad = transkey.createKeypad(servletData, "qwerty", "passwd", "passwd");
         const keypadLayout = await keypad.getKeypadLayout();
-        const encryptedPassword = keypad.encryptPassword(isKeepLogin ? "" : credentials.password, keypadLayout);
+        const encryptedPassword = keypad.encryptPassword("", keypadLayout);
 
         const payload = new URLSearchParams({
-            keepLoginInfo: isKeepLogin ? keepLoginInfo! : "",
-            userId: id,
+            keepLoginInfo,
+            userId,
             keepLogin: "Y",
             seedKey: transkey.encryptedSessionKey,
             initTime: servletData.initTime,
@@ -863,12 +831,11 @@ export class Cultureland {
         }
 
         // 변수 저장
-        this._id = id;
-        this._password = isKeepLogin ? null : credentials.password;
+        this._id = userId;
         this._keepLoginInfo = decodeURIComponent(KeepLoginConfigCookie.value).replace(/\+/g, " ");
 
         return {
-            userId: id,
+            userId: this._id,
             keepLoginInfo: this._keepLoginInfo
         };
     }

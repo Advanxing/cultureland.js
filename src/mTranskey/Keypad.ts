@@ -136,7 +136,7 @@ export class Keypad {
         let i = 0;
         for (const key of keys) {
             const keyPayload = await key.getBufferAsync(Jimp.MIME_BMP);
-            const keyHash = crypto.createHash("md5").update(keyPayload).digest("hex"); // 키 사진의 해시
+            const keyHash = crypto.createHash("md5").update(new Uint8Array(keyPayload)).digest("hex"); // 키 사진의 해시
 
             if (this.keyboardType === "qwerty") {
                 if (keyHash === lowerKeyBlankHash) layout.push(-1); // 빈 칸

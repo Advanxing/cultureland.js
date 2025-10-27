@@ -229,7 +229,7 @@ export class Seed {
         K[1] = SS0[Seed.GetB0(T11)] ^ SS1[Seed.GetB1(T11)] ^ SS2[Seed.GetB2(T11)] ^ SS3[Seed.GetB3(T11)]
     }
 
-    public static SeedRoundKey(a: number[], b: number[]) {
+    public static SeedRoundKey(a: number[], b: Uint8Array) {
         const A: number[] = new Array(1);
         const B: number[]  = new Array(1);
         const C: number[] = new Array(1);
@@ -307,7 +307,7 @@ export class Seed {
         for (let i = 0; i < 16; i++) a[i] = (b[i] ^ c[i]);
     }
 
-    public static SeedSetKey(a: number[], b: number[]) {
+    public static SeedSetKey(a: number[], b: Uint8Array) {
         Seed.SeedRoundKey(a, b);
     }
 
@@ -365,7 +365,7 @@ export class Seed {
         Seed.ArrayCopy(f, 0, e, 0, blockSize * 16 + remainLen);
     }
 
-    public static SeedEnc(geo: string, sessionKey: number[]) {
+    public static SeedEnc(geo: string, sessionKey: Uint8Array) {
         const iv = [0x4d, 0x6f, 0x62, 0x69, 0x6c, 0x65, 0x54, 0x72, 0x61, 0x6e, 0x73, 0x4b, 0x65, 0x79, 0x31, 0x30];
         const inData: number[] = new Array(64);
         const outData: number[] = new Array(64);
