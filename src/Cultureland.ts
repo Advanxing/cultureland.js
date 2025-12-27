@@ -273,7 +273,7 @@ export class Cultureland {
         }
         
         if (quantity && (quantity % 1 !== 0 || quantity < 1 || quantity > 5)) {
-            throw new CulturelandError("RangeError", "구매 수량은 최소 1장부터 최대 10장까지 입력 가능합니다.");
+            throw new CulturelandError("RangeError", "구매 수량은 최소 1장부터 최대 5장까지 입력 가능합니다.");
         }
 
         // 휴대폰 번호가 유효하지 않을 때
