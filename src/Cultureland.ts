@@ -1,5 +1,4 @@
-﻿import crypto from "crypto";
-import { parse } from "node-html-parser";
+﻿import { parse } from "node-html-parser";
 import pkg from "../package.json";
 import CulturelandError from "./CulturelandError.js";
 import mTranskey from "./mTranskey/Transkey.js";
@@ -244,7 +243,6 @@ export class Cultureland {
 
         for (let i = 0; i < pins.length; i++) {
             const chargeResult = parsedResults[i].getElementsByTagName("td");
-            console.log(chargeResult[1].innerHTML);
 
             results.push({
                 message: chargeResult[2].innerText as Types.CulturelandCharge["message"],
@@ -332,7 +330,7 @@ export class Cultureland {
         const giftResult: string = await giftResultRequest.text(); // 선물 결과 받아오기
 
         // 컬쳐랜드상품권(모바일문화상품권) 선물(구매)가 완료되었습니다.
-        if (giftResult.includes("<strong> 컬쳐랜드상품권(모바일문화상품권) 선물(구매)가<br />완료되었습니다.</strong>")) {
+        if (giftResult.includes("<strong> 컬쳐랜드상품권(모바일문화상품권)<br />선물(구매)가 완료되었습니다.</strong>")) {
             // 바코드의 코드 (URL 쿼리: code)
             const barcodeCode = giftResult.match(/<input type="hidden" id="barcodeImage"      name="barcodeImage"       value="https:\/\/m\.cultureland\.co\.kr\/csh\/mb\.do\?code=([\w/+=]+)" \/>/)?.[1];
             if (!barcodeCode) throw new CulturelandError("ResponseError", "선물 결과에서 바코드 URL을 찾을 수 없습니다.");
