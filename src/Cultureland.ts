@@ -261,15 +261,19 @@ export class Cultureland {
      * // 5000원권 1장을 나에게 선물
      * await client.gift(5000);
      * // 5000원권 1장을 010-1234-5678에게 선물
-     * await client.gift(5000, "01012345678");
+     * await client.gift(5000, 1, "01012345678");
      * @returns 선물 결과
      */
-    public async gift(amount: number, phoneNumber?: string): Promise<Types.CulturelandGift> {
+    public async gift(amount: number, quantity?: number, phoneNumber?: string): Promise<Types.CulturelandGift> {
         if (!(await this.isLogin())) throw new CulturelandError("LoginRequiredError", "로그인이 필요한 서비스 입니다.");
 
         // 구매 금액이 조건에 맞지 않을 때
         if (amount % 100 !== 0 || amount < 1000 || amount > 50000) {
             throw new CulturelandError("RangeError", "구매 금액은 최소 1천원부터 최대 5만원까지 100원 단위로 입력 가능합니다.");
+        }
+        
+        if (quantity && (quantity % 1 !== 0 || quantity < 1 || quantity > 5)) {
+            throw new CulturelandError("RangeError", "구매 수량은 최소 1장부터 최대 10장까지 입력 가능합니다.");
         }
 
         // 휴대폰 번호가 유효하지 않을 때
@@ -315,7 +319,7 @@ export class Cultureland {
             limitGiftBank: "N",
             bankRM: "OK",
             giftCategory: "M",
-            quantity: "1",
+            quantity: quantity ? quantity.toString() : "1",
             amount: amount.toString(),
             chkLms: "M",
             revPhone: phoneNumber,
